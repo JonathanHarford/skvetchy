@@ -16,10 +16,7 @@
 The primary audience is **Svelte developers** who need to add drawing or annotation capabilities to their applications.
 **Example Use Cases:**
 
-* A collaborative whiteboard application.
-* An annotation tool for marking up images or documents.
-* A simple digital art or note-taking web app.
-* A signature pad within a form.
+* A simple digital art web app.
 
 ## **3\. Features & Requirements**
 
