@@ -5,6 +5,7 @@
   import BrushModal from './components/Modals/BrushModal.svelte';
   import ColorModal from './components/Modals/ColorModal.svelte';
   import ConfirmModal from './components/Modals/ConfirmModal.svelte';
+  import Icon from './components/Icon.svelte';
   import type { ILayer } from './core/LayerManager';
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 
@@ -286,9 +287,15 @@
   />
   </div>
   <div class="bottom-toolbar">
-    <button on:click={() => showLayersModal = !showLayersModal} title="Layers">❖</button>
-    <button on:click={() => handleToolClick('pen')} title="Pen" class:active={currentTool === 'pen'}>✏️</button>
-    <button on:click={() => handleToolClick('eraser')} title="Eraser" class:active={currentTool === 'eraser'}>🐽</button>
+    <button on:click={() => showLayersModal = !showLayersModal} title="Layers">
+      <Icon name="layers" size={20} />
+    </button>
+    <button on:click={() => handleToolClick('pen')} title="Pen" class:active={currentTool === 'pen'}>
+      <Icon name="brush" size={20} />
+    </button>
+    <button on:click={() => handleToolClick('eraser')} title="Eraser" class:active={currentTool === 'eraser'}>
+      <Icon name="eraser" size={20} />
+    </button>
     
     <!-- Direct color picker button -->
     <input 
@@ -304,9 +311,13 @@
     </button>
     <button on:click={handleRedo} disabled={!canRedo} title="Redo">➦</button>
 
-    <button on:click={() => showSaveConfirmModal = true} title="Submit">💾</button>
+    <button on:click={() => showSaveConfirmModal = true} title="Submit">
+      <Icon name="check" size={20} />
+    </button>
 
-    <button on:click={handleToggleFullscreen} title="Toggle Fullscreen">∷</button>
+    <button on:click={handleToggleFullscreen} title="Toggle Fullscreen">
+      <Icon name="fullscreen" size={20} />
+    </button>
   </div>
 
 

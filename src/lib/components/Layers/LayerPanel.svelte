@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ILayer } from '../../core/LayerManager';
   import { createEventDispatcher, tick } from 'svelte'; // Import tick
+  import Icon from '../Icon.svelte';
 
   export let layers: readonly ILayer[] = [];
   export let activeLayerId: string | null = null;
@@ -154,14 +155,14 @@
             title={layer.isVisible ? 'Hide Layer' : 'Show Layer'}
             disabled={editingLayerId === layer.id}
           >
-            {layer.isVisible ? '👁️' : '🙈'}
+            <Icon name={layer.isVisible ? 'eye-open' : 'eye-closed'} size={16} />
           </button>
           <button
             on:click|stopPropagation={() => dispatch('deleteLayer', layer.id)}
             disabled={layers.length <= 1 || editingLayerId === layer.id}
             title="Delete Layer"
           >
-            🗑️
+            <Icon name="trash" size={16} />
           </button>
         </div>
         </div>
