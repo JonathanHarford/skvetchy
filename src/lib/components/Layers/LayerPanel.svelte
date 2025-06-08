@@ -10,7 +10,8 @@
     deleteLayer: string;
     toggleVisibility: string;
     reorderLayer: { layerId: string; newIndex: number };
-    renameLayer: { layerId: string; newName: string }; // New event
+    renameLayer: { layerId: string; newName: string };
+    addLayer: void; // New event for adding layers
   }>();
 
   let editingLayerId: string | null = null;
@@ -47,9 +48,13 @@
     event.preventDefault();
     const sourceLayerId = event.dataTransfer!.getData('text/plain');
     if (sourceLayerId && sourceLayerId !== targetLayerId) {
-      const targetIndex = layers.findIndex(l => l.id === targetLayerId);
+      // Since we're displaying layers in reverse order, we need to adjust the target index
+      const reversedLayers = [...layers].reverse();
+      const targetIndex = reversedLayers.findIndex(l => l.id === targetLayerId);
       if (targetIndex !== -1) {
-        dispatch('reorderLayer', { layerId: sourceLayerId, newIndex: targetIndex });
+        // Convert back to original array index
+        const originalTargetIndex = layers.length - 1 - targetIndex;
+        dispatch('reorderLayer', { layerId: sourceLayerId, newIndex: originalTargetIndex });
       }
     }
     draggedItemId = null;
@@ -62,6 +67,9 @@
   }
   // End of drag-and-drop handlers
 
+  function handleAddLayer() {
+    dispatch('addLayer');
+  }
 
   async function startEditing(layer: ILayer) {
     editingLayerId = layer.id;
@@ -92,12 +100,18 @@
       editingLayerId = null; // Cancel editing
     }
   }
+
+  // Create a reversed array for display (top layers first)
+  $: displayLayers = [...layers].reverse();
 </script>
 
 <div class="layer-panel">
-  <h3>Layers</h3>
+  <div class="layer-header">
+    <h3>Layers</h3>
+    <button class="add-layer-btn" on:click={handleAddLayer} title="Add Layer">+</button>
+  </div>
   <ul>
-    {#each layers as layer (layer.id)}
+    {#each displayLayers as layer (layer.id)}
       <li
         class="layer-item"
         class:active={layer.id === activeLayerId}
@@ -171,11 +185,39 @@
     padding: 8px;
     /* z-index: 100; */ /* Removed for modal display */
   }
-  h3 {
-    margin-top: 0;
+  
+  .layer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 8px;
+  }
+  
+  h3 {
+    margin: 0;
     font-size: 0.95em; /* Slightly smaller font */
   }
+  
+  .add-layer-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  
+  .add-layer-btn:hover {
+    background-color: #45a049;
+  }
+  
   ul {
     list-style: none;
     padding: 0;

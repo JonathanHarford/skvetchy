@@ -70,7 +70,6 @@
 </div>
 
 <style>
-  /* ... existing styles ... */
   .toolbar {
     position: absolute;
     top: 10px;

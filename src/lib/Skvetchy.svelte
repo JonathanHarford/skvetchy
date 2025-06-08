@@ -2,9 +2,9 @@
   import Canvas from './components/Canvas/Canvas.svelte';
   import Toolbar from './components/Toolbar/Toolbar.svelte';
   import LayerPanel from './components/Layers/LayerPanel.svelte';
-  import BrushModal from './components/modals/BrushModal.svelte';
-  import ColorModal from './components/modals/ColorModal.svelte';
-  import ConfirmModal from './components/modals/ConfirmModal.svelte';
+  import BrushModal from './components/Modals/BrushModal.svelte';
+  import ColorModal from './components/Modals/ColorModal.svelte';
+  import ConfirmModal from './components/Modals/ConfirmModal.svelte';
   import type { ILayer } from './core/LayerManager';
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 
@@ -260,7 +260,7 @@
   </div>
 
   {#if showLayersModal}
-    <div class="modal-overlay" on:click={() => showLayersModal = false}>
+    <div class="modal-overlay" on:click={() => showLayersModal = false} on:keydown={(e) => e.key === 'Escape' && (showLayersModal = false)} role="button" tabindex="0">
       <div class="modal-content layer-modal-content" on:click|stopPropagation>
         <LayerPanel
           layers={layers}
@@ -270,13 +270,14 @@
           on:toggleVisibility={handleToggleVisibility}
           on:reorderLayer={handleReorderLayer}
           on:renameLayer={handleRenameLayer}
+          on:addLayer={handleAddLayer}
         />
       </div>
     </div>
   {/if}
 
   {#if showSaveConfirmModal}
-    <div class="modal-overlay" on:click={() => showSaveConfirmModal = false}> {/* Allow closing by overlay click */}
+    <div class="modal-overlay" on:click={() => showSaveConfirmModal = false} on:keydown={(e) => e.key === 'Escape' && (showSaveConfirmModal = false)} role="button" tabindex="0">
       <div class="modal-content" on:click|stopPropagation>
         <ConfirmModal
           title="Save Image"
@@ -292,10 +293,10 @@
   {/if}
 
   {#if showColorModal}
-    <div class="modal-overlay" on:click={() => showColorModal = false}>
+    <div class="modal-overlay" on:click={() => showColorModal = false} on:keydown={(e) => e.key === 'Escape' && (showColorModal = false)} role="button" tabindex="0">
       <div class="modal-content" on:click|stopPropagation>
         <ColorModal
-          bind:penColor={penColor} /* Two-way bind penColor */
+          bind:penColor={penColor}
           on:setColor={() => {
             /* penColor is already updated by the binding */
             /* Dispatch the change for parent components if necessary */
@@ -308,10 +309,10 @@
   {/if}
 
   {#if showBrushModal}
-    <div class="modal-overlay" on:click={() => showBrushModal = false}>
-      <div class="modal-content" on:click|stopPropagation> {/* Use generic modal-content class */}
+    <div class="modal-overlay" on:click={() => showBrushModal = false} on:keydown={(e) => e.key === 'Escape' && (showBrushModal = false)} role="button" tabindex="0">
+      <div class="modal-content" on:click|stopPropagation>
         <BrushModal
-          bind:penSize={penSize} /* Two-way bind penSize */
+          bind:penSize={penSize}
           on:setSize={() => {
             /* penSize is already updated by the binding */
             /* Dispatch the change for parent components if necessary */

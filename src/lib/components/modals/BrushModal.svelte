@@ -15,7 +15,7 @@
   }
 </script>
 
-<div class="brush-modal-container"> {/* Changed class name for clarity */}
+<div class="brush-modal-container">
   <h4>Brush Size</h4>
   <div class="brush-controls">
     <input
@@ -24,7 +24,7 @@
       min="1"
       max="100"
       bind:value={penSize}
-      on:input={handleInput} <!-- Dispatch on input for real-time update -->
+      on:input={handleInput}
     />
     <span>{penSize}px</span>
   </div>

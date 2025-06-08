@@ -22,7 +22,7 @@
       type="color"
       id="penColor"
       bind:value={penColor}
-      on:input={handleInput} <!-- Dispatch on input for real-time preview if app supports it -->
+      on:input={handleInput}
     />
     <span>{penColor}</span>
   </div>
