@@ -1,47 +1,196 @@
-# Svelte + TS + Vite
+# Skvetchy - Svelte Drawing Component
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+A powerful, customizable drawing/sketching component for Svelte applications built with Konva.js.
 
-## Recommended IDE Setup
+## Features
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+- 🎨 Multi-layer drawing support
+- ✏️ Pen and eraser tools
+- 🎯 Customizable pen colors and sizes
+- 📱 Fullscreen mode support
+- 💾 PNG export functionality
+- ↩️ Undo/Redo functionality
+- 👁️ Layer visibility controls
+- 🔄 Layer reordering and renaming
+- 📦 Fully customizable UI components
 
-## Need an official Svelte framework?
+## Installation
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
-
-## Technical considerations
-
-**Why use this over SvelteKit?**
-
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
-
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
-
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+```bash
+npm install skvetchy
 ```
+
+## Basic Usage
+
+```svelte
+<script>
+  import { Skvetchy } from 'skvetchy';
+  
+  let drawingComponent;
+  
+  function handleExport(event) {
+    console.log('Exported image:', event.detail);
+  }
+</script>
+
+<Skvetchy
+  bind:this={drawingComponent}
+  width="800px"
+  height="600px"
+  on:export={handleExport}
+/>
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `width` | `string \| number` | `'100%'` | Width of the drawing area |
+| `height` | `string \| number` | `'100%'` | Height of the drawing area |
+| `backgroundColor` | `string` | `'#333'` | Background color of the component |
+| `showToolbar` | `boolean` | `true` | Whether to show the toolbar |
+| `showLayerPanel` | `boolean` | `true` | Whether to show the layer panel |
+| `initialPenColor` | `string` | `'#000000'` | Initial pen color |
+| `initialPenSize` | `number` | `5` | Initial pen size |
+| `initialTool` | `'pen' \| 'eraser'` | `'pen'` | Initial tool selection |
+| `enableFullscreen` | `boolean` | `true` | Whether fullscreen mode is enabled |
+| `className` | `string` | `''` | Additional CSS class for styling |
+
+## Events
+
+| Event | Detail Type | Description |
+|-------|-------------|-------------|
+| `layersChange` | `readonly ILayer[]` | Fired when layers are modified |
+| `activeLayerChange` | `string \| null` | Fired when active layer changes |
+| `toolChange` | `'pen' \| 'eraser'` | Fired when tool is changed |
+| `colorChange` | `string` | Fired when pen color changes |
+| `sizeChange` | `number` | Fired when pen size changes |
+| `export` | `Blob` | Fired when image is exported |
+| `fullscreenToggle` | `boolean` | Fired when fullscreen is toggled |
+
+## Methods
+
+You can call these methods on the component instance:
+
+```svelte
+<script>
+  let drawingComponent;
+  
+  function undoLastAction() {
+    drawingComponent.undo();
+  }
+  
+  function redoLastAction() {
+    drawingComponent.redo();
+  }
+  
+  function addNewLayer() {
+    drawingComponent.addLayer();
+  }
+  
+  function clearCurrentLayer() {
+    drawingComponent.clearActiveLayer();
+  }
+  
+  async function exportImage() {
+    const imageBlob = await drawingComponent.exportToPNG();
+    // Handle the exported image
+  }
+  
+  function getCurrentLayers() {
+    return drawingComponent.getLayers();
+  }
+  
+  function getActiveLayer() {
+    return drawingComponent.getActiveLayerId();
+  }
+</script>
+```
+
+## Advanced Usage
+
+### Custom Styling
+
+```svelte
+<Skvetchy
+  className="my-custom-drawing"
+  backgroundColor="#f0f0f0"
+  width="100vw"
+  height="100vh"
+/>
+
+<style>
+  :global(.my-custom-drawing) {
+    border: 2px solid #ccc;
+    border-radius: 8px;
+  }
+</style>
+```
+
+### Headless Usage (Custom UI)
+
+If you want to build your own UI, you can import individual components:
+
+```svelte
+<script>
+  import { Canvas, Toolbar, LayerPanel } from 'skvetchy';
+  // Build your own layout with these components
+</script>
+```
+
+### Event Handling
+
+```svelte
+<script>
+  import { Skvetchy } from 'skvetchy';
+  
+  function handleLayersChange(event) {
+    console.log('Current layers:', event.detail);
+    // Sync with your app state
+  }
+  
+  function handleToolChange(event) {
+    console.log('Tool changed to:', event.detail);
+    // Update your UI accordingly
+  }
+  
+  function handleExport(event) {
+    const imageBlob = event.detail;
+    // Upload to server, save locally, etc.
+  }
+</script>
+
+<Skvetchy
+  on:layersChange={handleLayersChange}
+  on:toolChange={handleToolChange}
+  on:export={handleExport}
+/>
+```
+
+## Development
+
+To work on this component:
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build the library
+npm run build
+
+# Package for distribution
+npm run package
+```
+
+## Dependencies
+
+- Svelte 4.x
+- Konva.js
+- svelte-konva
+
+## License
+
+MIT
