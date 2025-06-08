@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ES6"],
     "skipLibCheck": true,
