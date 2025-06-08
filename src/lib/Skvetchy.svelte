@@ -2,6 +2,9 @@
   import Canvas from './components/Canvas/Canvas.svelte';
   import Toolbar from './components/Toolbar/Toolbar.svelte';
   import LayerPanel from './components/Layers/LayerPanel.svelte';
+  import BrushModal from './components/modals/BrushModal.svelte';
+  import ColorModal from './components/modals/ColorModal.svelte';
+  import ConfirmModal from './components/modals/ConfirmModal.svelte';
   import type { ILayer } from './core/LayerManager';
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 
@@ -20,6 +23,10 @@
   // Internal state
   let layers: readonly ILayer[] = [];
   let activeLayerId: string | null = null;
+  let showLayersModal = false; // New state variable
+  let showBrushModal = false;
+  let showColorModal = false;
+  let showSaveConfirmModal = false;
   let penColor = initialPenColor;
   let penSize = initialPenSize;
   let currentTool: 'pen' | 'eraser' = initialTool;
@@ -224,21 +231,10 @@
     />
   {/if}
   
-  {#if showLayerPanel}
-    <LayerPanel
-      layers={layers}
-      activeLayerId={activeLayerId}
-      on:selectLayer={handleSelectLayer}
-      on:deleteLayer={handleDeleteLayer}
-      on:toggleVisibility={handleToggleVisibility}
-      on:reorderLayer={handleReorderLayer}
-      on:renameLayer={handleRenameLayer}
-    />
-  {/if}
-  
-  <Canvas
-    bind:this={canvasComponent}
-    penColor={penColor}
+  <div style="flex-grow: 1; position: relative; overflow: hidden; width: 100%; height: 100%;">
+    <Canvas
+      bind:this={canvasComponent}
+      penColor={penColor}
     penSize={penSize}
     currentToolType={currentTool}
     on:layersupdate={handleLayersUpdate}
@@ -247,6 +243,85 @@
     layers={layers}
     activeLayerId={activeLayerId}
   />
+  </div>
+  <div class="bottom-toolbar">
+    <button on:click={() => showLayersModal = !showLayersModal} title="Layers">❖</button>
+    <button on:click={() => showBrushModal = !showBrushModal} title="Brush">🖌️</button>
+    <button on:click={() => showColorModal = !showColorModal} title="Color">🎨</button>
+
+    <button on:click={handleUndo} disabled={!canUndo} title="Undo">
+      <span style="display: inline-block; transform: rotate(180deg);">➦</span>
+    </button>
+    <button on:click={handleRedo} disabled={!canRedo} title="Redo">➦</button>
+
+    <button on:click={() => showSaveConfirmModal = true} title="Submit">💾</button>
+
+    <button on:click={handleToggleFullscreen} title="Toggle Fullscreen">∷</button>
+  </div>
+
+  {#if showLayersModal}
+    <div class="modal-overlay" on:click={() => showLayersModal = false}>
+      <div class="modal-content layer-modal-content" on:click|stopPropagation>
+        <LayerPanel
+          layers={layers}
+          activeLayerId={activeLayerId}
+          on:selectLayer={handleSelectLayer}
+          on:deleteLayer={handleDeleteLayer}
+          on:toggleVisibility={handleToggleVisibility}
+          on:reorderLayer={handleReorderLayer}
+          on:renameLayer={handleRenameLayer}
+        />
+      </div>
+    </div>
+  {/if}
+
+  {#if showSaveConfirmModal}
+    <div class="modal-overlay" on:click={() => showSaveConfirmModal = false}> {/* Allow closing by overlay click */}
+      <div class="modal-content" on:click|stopPropagation>
+        <ConfirmModal
+          title="Save Image"
+          message="Are you sure you want to save and download the image?"
+          on:confirm={() => {
+            handleExportPNG();
+            showSaveConfirmModal = false;
+          }}
+          on:cancel={() => showSaveConfirmModal = false}
+        />
+      </div>
+    </div>
+  {/if}
+
+  {#if showColorModal}
+    <div class="modal-overlay" on:click={() => showColorModal = false}>
+      <div class="modal-content" on:click|stopPropagation>
+        <ColorModal
+          bind:penColor={penColor} /* Two-way bind penColor */
+          on:setColor={() => {
+            /* penColor is already updated by the binding */
+            /* Dispatch the change for parent components if necessary */
+            dispatch('colorChange', penColor);
+          }}
+          on:close={() => showColorModal = false}
+        />
+      </div>
+    </div>
+  {/if}
+
+  {#if showBrushModal}
+    <div class="modal-overlay" on:click={() => showBrushModal = false}>
+      <div class="modal-content" on:click|stopPropagation> {/* Use generic modal-content class */}
+        <BrushModal
+          bind:penSize={penSize} /* Two-way bind penSize */
+          on:setSize={() => {
+            /* penSize is already updated by the binding */
+            /* Dispatch the change for parent components if necessary */
+            dispatch('sizeChange', penSize);
+          }}
+          on:close={() => showBrushModal = false}
+        />
+      </div>
+    </div>
+  {/if}
 </main>
 
 <style>
@@ -254,8 +329,65 @@
     overflow: hidden;
     position: relative;
     display: flex;
+    flex-direction: column; /* Ensure vertical layout */
   }
   
+  .bottom-toolbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    background-color: #f0f0f0; /* Example background color */
+    border-top: 1px solid #ccc; /* Example border */
+  }
+
+  .bottom-toolbar button {
+    padding: 8px 12px;
+    font-size: 1.2em; /* For icon buttons, adjust as needed */
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 0 5px; /* Spacing between buttons */
+    line-height: 1; /* Ensures icon is centered if it has descenders/ascenders */
+  }
+  .bottom-toolbar button:hover:not(:disabled) {
+    background-color: #e0e0e0;
+    border-color: #bbb;
+  }
+  .bottom-toolbar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .modal-overlay {
+    position: fixed; /* Use fixed to cover the whole viewport */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it's above other content */
+  }
+
+  .modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    /* Max width/height can be added as needed */
+  }
+
+  /* Specific styling for layer modal if needed, e.g., size */
+  .layer-modal-content {
+    /* Reset LayerPanel's absolute positioning if it conflicts */
+    /* The LayerPanel itself might need style adjustments now that it's in a modal */
+    color: #333; /* Example to make text visible if it was white on dark */
+  }
+
   .sketchy-drawing:fullscreen :global(.toolbar) {
     /* Ensure toolbar is visible in fullscreen */
     z-index: 1000;

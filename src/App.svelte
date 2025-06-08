@@ -23,8 +23,8 @@
     width="100vw"
     height="100vh"
     backgroundColor="#333"
-    showToolbar={true}
-    showLayerPanel={true}
+    showToolbar={false}
+    showLayerPanel={false}
     initialPenColor="#ff0000"
     initialPenSize={8}
     initialTool="pen"

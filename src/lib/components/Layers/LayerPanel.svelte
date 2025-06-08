@@ -158,18 +158,18 @@
 
 <style>
   .layer-panel {
-    position: absolute;
-    top: 80px; /* Adjust if toolbar wraps and takes more space */
-    left: 10px;
-    width: 180px; /* Slightly narrower */
-    max-height: calc(100vh - 100px); /* Prevent it from being too tall */
+    /* position: absolute; */ /* Removed for modal display */
+    /* top: 80px; */ /* Removed for modal display */
+    /* left: 10px; */ /* Removed for modal display */
+    width: 300px; /* Example width for modal */
+    max-height: 70vh; /* Example max-height */
     overflow-y: auto; /* Allow vertical scrolling if content exceeds max-height */
-    background-color: #f9f9f9;
+    background-color: #f9f9f9; /* Keep its own background */
     border: 1px solid #ccc;
     border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    padding: 8px; /* Slightly reduced padding */
-    z-index: 100;
+    /* box-shadow: 0 2px 5px rgba(0,0,0,0.1); */ /* Shadow now on modal-content in Skvetchy.svelte */
+    padding: 8px;
+    /* z-index: 100; */ /* Removed for modal display */
   }
   h3 {
     margin-top: 0;
