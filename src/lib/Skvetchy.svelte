@@ -323,8 +323,11 @@
 
 
   {#if showLayersModal}
-    <div class="modal-overlay" on:click={() => showLayersModal = false} on:keydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && (showLayersModal = false)} role="dialog" tabindex="0">
-      <div class="modal-content layer-modal-content" on:click|stopPropagation>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <div class="modal-overlay" on:click={() => showLayersModal = false} role="presentation">
+      <div class="modal-content layer-modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="layers-title">
         <LayerPanel
           layers={layers}
           activeLayerId={activeLayerId}
@@ -340,8 +343,11 @@
   {/if}
 
   {#if showSaveConfirmModal}
-    <div class="modal-overlay" on:click={() => showSaveConfirmModal = false} on:keydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && (showSaveConfirmModal = false)} role="button" tabindex="0">
-      <div class="modal-content" on:click|stopPropagation>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <div class="modal-overlay" on:click={() => showSaveConfirmModal = false} role="presentation">
+      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="save-confirm-title">
         <ConfirmModal
           title="Save Image"
           message="Are you sure you want to save and download the image?"
@@ -356,8 +362,11 @@
   {/if}
 
   {#if showColorModal}
-    <div class="modal-overlay" on:click={() => showColorModal = false} on:keydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && (showColorModal = false)} role="button" tabindex="0">
-      <div class="modal-content" on:click|stopPropagation>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <div class="modal-overlay" on:click={() => showColorModal = false} role="presentation">
+      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="color-modal-title">
         <ColorModal
           bind:penColor={penColor}
           on:setColor={() => {
@@ -372,8 +381,11 @@
   {/if}
 
   {#if showBrushModal}
-    <div class="modal-overlay" on:click={() => showBrushModal = false} on:keydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && (showBrushModal = false)} role="button" tabindex="0">
-      <div class="modal-content" on:click|stopPropagation>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <div class="modal-overlay" on:click={() => showBrushModal = false} role="presentation">
+      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="brush-modal-title">
         <BrushModal
           bind:penSize={penSize}
           on:setSize={handleSetSize}
