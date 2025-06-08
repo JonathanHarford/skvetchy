@@ -103,16 +103,22 @@
         class:active={layer.id === activeLayerId}
         class:drop-target={layer.id === dropTargetId && layer.id !== draggedItemId}
         class:editing={layer.id === editingLayerId}
-        draggable={editingLayerId !== layer.id} /* Disable drag while editing this item */
+        draggable={editingLayerId !== layer.id}
         on:dragstart={(e) => editingLayerId !== layer.id && handleDragStart(e, layer.id)}
         on:dragover={(e) => handleDragOver(e, layer.id)}
         on:dragleave={handleDragLeave}
         on:drop={(e) => handleDrop(e, layer.id)}
         on:dragend={handleDragEnd}
-        on:click={() => { if(editingLayerId !== layer.id) dispatch('selectLayer', layer.id); }}
-        title={editingLayerId === layer.id ? 'Press Enter to save, Esc to cancel' : layer.name + ` (Z: ${layer.zIndex})`}
         data-layer-id={layer.id}
       >
+        <div
+          class="layer-content"
+          on:click={() => { if(editingLayerId !== layer.id) dispatch('selectLayer', layer.id); }}
+          on:keydown={(e) => { if((e.key === 'Enter' || e.key === ' ') && editingLayerId !== layer.id) dispatch('selectLayer', layer.id); }}
+          tabindex="0"
+          role="button"
+          title={editingLayerId === layer.id ? 'Press Enter to save, Esc to cancel' : layer.name + ` (Z: ${layer.zIndex})`}
+        >
         {#if editingLayerId === layer.id}
           <input
             type="text"
@@ -143,6 +149,7 @@
           >
             🗑️
           </button>
+        </div>
         </div>
       </li>
     {/each}
@@ -175,14 +182,16 @@
     margin: 0;
   }
   li.layer-item {
-    padding: 6px; /* Slightly reduced padding */
     border-bottom: 1px solid #eee;
+    font-size: 0.9em; /* Slightly smaller font */
+    transition: background-color 0.2s ease-in-out;
+  }
+  .layer-content {
+    padding: 6px; /* Slightly reduced padding */
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.9em; /* Slightly smaller font */
-    transition: background-color 0.2s ease-in-out;
   }
   li:last-child {
     border-bottom: none;

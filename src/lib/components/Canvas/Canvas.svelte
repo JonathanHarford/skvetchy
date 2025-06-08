@@ -4,7 +4,7 @@
   import { PenTool } from '../../core/tools/PenTool';
   import { EraserTool } from '../../core/tools/EraserTool'; // Import EraserTool
   import type { ITool } from '../../core/tools/ITool';
-  import { HistoryManager, type IHistoryAction, captureCanvasState, ActionType } from '../../core/HistoryManager'; // Import HistoryManager
+  import { HistoryManager, type IHistoryAction, captureCanvasState, type ActionType } from '../../core/HistoryManager'; // Import HistoryManager
 
   // Props from App.svelte
   export let penColor = '#000000';

@@ -125,7 +125,7 @@
     bind:currentTool={currentTool}
     canUndo={canUndo}
     canRedo={canRedo}
-    isFullscreen={isFullscreen} {/* Pass isFullscreen state */}
+    isFullscreen={isFullscreen}
     on:setTool={handleSetTool}
     on:setColor={handleSetColor}
     on:setSize={handleSetSize}
@@ -133,8 +133,8 @@
     on:redo={handleRedo}
     on:addLayer={handleAddLayer}
     on:clearActiveLayer={handleClearActiveLayer}
-    on:toggleFullscreen={handleToggleFullscreen} {/* Handle toggle event */}
-    on:exportPNG={handleExportPNG} <!-- Add this line -->
+    on:toggleFullscreen={handleToggleFullscreen}
+    on:exportPNG={handleExportPNG}
   />
   <LayerPanel
     layers={layers}
@@ -143,7 +143,7 @@
     on:deleteLayer={handleDeleteLayer}
     on:toggleVisibility={handleToggleVisibility}
     on:reorderLayer={handleReorderLayer}
-    on:renameLayer={handleRenameLayer} <!-- Add this line -->
+    on:renameLayer={handleRenameLayer}
   />
   <Canvas
     bind:this={canvasComponent}
