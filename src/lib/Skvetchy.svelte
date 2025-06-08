@@ -13,7 +13,6 @@
   export let height: string | number = '100%';
   export let backgroundColor = '#333';
   export let showToolbar = true;
-  export let showLayerPanel = true;
   export let initialPenColor = '#000000';
   export let initialPenSize = 5;
   export let initialTool: 'pen' | 'eraser' = 'pen';
@@ -247,6 +246,8 @@
   <div class="bottom-toolbar">
     <button on:click={() => showLayersModal = !showLayersModal} title="Layers">❖</button>
     <button on:click={() => showBrushModal = !showBrushModal} title="Brush">🖌️</button>
+    <button on:click={() => currentTool = 'pen'} title="Pen" class:active={currentTool === 'pen'}>✏️</button>
+    <button on:click={() => currentTool = 'eraser'} title="Eraser" class:active={currentTool === 'eraser'}>🐽</button>
     <button on:click={() => showColorModal = !showColorModal} title="Color">🎨</button>
 
     <button on:click={handleUndo} disabled={!canUndo} title="Undo">
@@ -359,6 +360,10 @@
   .bottom-toolbar button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+  .bottom-toolbar button.active {
+    background-color: #a0a0ff;
+    font-weight: bold;
   }
 
   .modal-overlay {
