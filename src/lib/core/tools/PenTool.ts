@@ -1,53 +1,59 @@
 import type { ILayer } from '../LayerManager';
-
-export interface ITool {
-  onPointerDown(event: PointerEvent, activeLayer: ILayer, color: string, penSize: number): void;
-  onPointerMove(event: PointerEvent, activeLayer: ILayer, color: string, penSize: number): void;
-  onPointerUp(event: PointerEvent, activeLayer: ILayer): void;
-  // onPointerEnter and onPointerLeave might be needed for cursor changes
-}
+import type { ITool } from './ITool'; // Changed import
 
 export class PenTool implements ITool {
   private drawing = false;
   private lastX = 0;
   private lastY = 0;
 
-  onPointerDown(event: PointerEvent, activeLayer: ILayer, color: string, penSize: number): void {
-    if (event.button !== 0) return; // Only main button (left-click or touch)
+  activate(context: CanvasRenderingContext2D): void {
+    context.globalCompositeOperation = 'source-over';
+  }
+
+  deactivate(context: CanvasRenderingContext2D): void {
+    // No specific deactivation needed for pen tool regarding globalCompositeOperation
+  }
+
+  onPointerDown(event: PointerEvent, activeLayer: ILayer, color: string, penSize: number, pressure?: number): void {
+    if (event.button !== 0) return;
     this.drawing = true;
+
+    // Ensure correct composite operation when this tool becomes active
+    activeLayer.context.globalCompositeOperation = 'source-over';
+
     activeLayer.context.beginPath();
     activeLayer.context.strokeStyle = color;
-    activeLayer.context.lineWidth = penSize;
+    // Use pressure if available, otherwise fallback to penSize
+    activeLayer.context.lineWidth = pressure ? penSize * pressure : penSize;
     activeLayer.context.lineCap = 'round';
     activeLayer.context.lineJoin = 'round';
 
-    // Adjust for canvas offset if any, and use offsetX/offsetY for simplicity here
-    // A more robust solution would calculate relative to the canvas element precisely
     this.lastX = event.offsetX;
     this.lastY = event.offsetY;
     activeLayer.context.moveTo(this.lastX, this.lastY);
   }
 
-  onPointerMove(event: PointerEvent, activeLayer: ILayer, color: string, penSize: number): void {
+  onPointerMove(event: PointerEvent, activeLayer: ILayer, color: string, penSize: number, pressure?: number): void {
     if (!this.drawing) return;
 
-    // Update style in case it changed mid-draw (e.g. pressure)
     activeLayer.context.strokeStyle = color;
-    activeLayer.context.lineWidth = penSize;
+    activeLayer.context.lineWidth = pressure ? penSize * pressure : penSize;
 
     activeLayer.context.lineTo(event.offsetX, event.offsetY);
     activeLayer.context.stroke();
 
-    // Update lastX/lastY for the next segment
     this.lastX = event.offsetX;
     this.lastY = event.offsetY;
-    // For smoother lines, might need to re-beginPath() here or use a more complex path drawing
   }
 
   onPointerUp(event: PointerEvent, activeLayer: ILayer): void {
     if (event.button !== 0) return;
+    if (!this.drawing) return; // Ensure up corresponds to a down from this tool
     this.drawing = false;
-    activeLayer.context.closePath();
-    // TODO: Add this drawing action to the history stack for undo/redo
+    // activeLayer.context.closePath(); // Not strictly necessary for pen strokes
+
+    // globalCompositeOperation should already be source-over
+    // No need to restore globalCompositeOperation here as PenTool always uses source-over
+    // and activate ensures it's set.
   }
 }

@@ -1,31 +1,61 @@
 <script lang="ts">
-  // Props for tool selection, color, size will be added later
-  export let onClearActiveLayer: () => void;
-  export let onAddLayer: () => void;
+  import { createEventDispatcher } from 'svelte';
 
-  // Default values, will be made dynamic
-  let penColor = '#000000';
-  let penSize = 5;
+  export let penColor: string;
+  export let penSize: number;
+  export let currentTool: 'pen' | 'eraser';
+  export let canUndo: boolean = false;
+  export let canRedo: boolean = false;
+  // No longer need onClearActiveLayer, onAddLayer here, they are in App.svelte
+
+  const dispatch = createEventDispatcher<{
+    setTool: 'pen' | 'eraser';
+    setColor: string;
+    setSize: number;
+    undo: void;
+    redo: void;
+    addLayer: void; // Added for consistency, App.svelte will handle
+    clearActiveLayer: void; // Added for consistency
+  }>();
+
+  function handleSetTool(tool: 'pen' | 'eraser') {
+    dispatch('setTool', tool);
+  }
+  function handleUndo() {
+    dispatch('undo');
+  }
+  function handleRedo() {
+    dispatch('redo');
+  }
+  function handleAddLayer() {
+    dispatch('addLayer');
+  }
+  function handleClearLayer() {
+    dispatch('clearActiveLayer');
+  }
+
 </script>
 
 <div class="toolbar">
   <label for="penColor">Color:</label>
-  <input type="color" id="penColor" bind:value={penColor} />
+  <input type="color" id="penColor" bind:value={penColor} on:input={(e) => dispatch('setColor', e.currentTarget.value)} />
 
   <label for="penSize">Size:</label>
-  <input type="range" id="penSize" min="1" max="50" bind:value={penSize} />
+  <input type="range" id="penSize" min="1" max="50" bind:value={penSize} on:input={(e) => dispatch('setSize', parseInt(e.currentTarget.value))} />
   <span>{penSize}px</span>
 
-  <button on:click={() => console.log('Select Pen Tool (TODO)')}>Pen</button>
-  <button on:click={() => console.log('Select Eraser Tool (TODO)')}>Eraser</button>
+  <button on:click={() => handleSetTool('pen')} class:active={currentTool === 'pen'}>Pen</button>
+  <button on:click={() => handleSetTool('eraser')} class:active={currentTool === 'eraser'}>Eraser</button>
 
-  <button on:click={onAddLayer}>Add Layer</button>
-  <button on:click={onClearActiveLayer}>Clear Layer</button>
+  <button on:click={handleAddLayer}>Add Layer</button>
+  <button on:click={handleClearLayer}>Clear Layer</button>
 
-  <!-- More controls will be added here: Undo, Redo, Export, etc. -->
+  <button on:click={handleUndo} disabled={!canUndo}>Undo</button>
+  <button on:click={handleRedo} disabled={!canRedo}>Redo</button>
 </div>
 
 <style>
+  /* ... existing styles ... */
   .toolbar {
     position: absolute;
     top: 10px;
@@ -54,5 +84,13 @@
   }
   button:hover {
     background-color: #f0f0f0;
+  }
+  .toolbar button.active {
+    background-color: #a0a0ff;
+    font-weight: bold;
+  }
+  .toolbar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 </style>

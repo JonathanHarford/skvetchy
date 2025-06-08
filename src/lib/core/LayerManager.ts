@@ -89,33 +89,24 @@ export class LayerManager {
     }
   }
 
-  reorderLayer(id: string, newZIndex: number): void {
-    const layerToMove = this.layers.find(l => l.id === id);
-    if (!layerToMove) return;
+  // Modify reorderLayer to be more suitable for drag-and-drop (new index based)
+  // and to return information for history
+  reorderLayer(layerId: string, newVisualIndex: number): { oldVisualIndex: number, newVisualIndex: number } | null {
+    const layerIndex = this.layers.findIndex(l => l.id === layerId);
+    if (layerIndex === -1) return null;
 
-    const oldZIndex = layerToMove.zIndex;
-    if (oldZIndex === newZIndex) return;
+    const layerToMove = this.layers.splice(layerIndex, 1)[0];
+    this.layers.splice(newVisualIndex, 0, layerToMove);
 
-    this.layers.forEach(layer => {
-      if (layer.id === id) {
-        layer.zIndex = newZIndex;
-      } else if (newZIndex > oldZIndex && layer.zIndex > oldZIndex && layer.zIndex <= newZIndex) {
-        // Moving up, shift layers between old and new Z down
-        layer.zIndex--;
-      } else if (newZIndex < oldZIndex && layer.zIndex < oldZIndex && layer.zIndex >= newZIndex) {
-        // Moving down, shift layers between new and old Z up
-        layer.zIndex++;
-      }
-    });
+    const oldVisualZIndex = layerToMove.zIndex; // Capture old zIndex before re-assigning
 
-    // Ensure z-indices are contiguous after reordering
-    this.layers.sort((a, b) => a.zIndex - b.zIndex);
+    // Re-assign all z-indices based on new array order
     this.layers.forEach((layer, index) => {
-        if (layer.zIndex !== index) { // Check to prevent unnecessary re-assignment if already correct
-            layer.zIndex = index;
-        }
+        layer.zIndex = index;
     });
-    // TODO: Emit event for UI update
+
+    // TODO: Emit event for UI update if not handled by history update propagation
+    return { oldVisualIndex: oldVisualZIndex, newVisualIndex: layerToMove.zIndex };
   }
 
   resizeLayers(width: number, height: number): void {
@@ -140,5 +131,49 @@ export class LayerManager {
       }
     });
     // TODO: Emit event for redraw
+  }
+
+  addLayerWithData(layerData: ILayer, index?: number): ILayer | null {
+    // Check if layer with this ID already exists to prevent duplicates if not handled carefully
+    if (this.layers.find(l => l.id === layerData.id)) {
+        console.warn(`Layer with ID ${layerData.id} already exists. Cannot re-add.`);
+        // Optionally, find and update it, or handle as an error
+        return null;
+    }
+
+    // Create a new canvas and copy content for the re-added layer
+    const newCanvas = document.createElement('canvas');
+    newCanvas.width = layerData.canvas.width;
+    newCanvas.height = layerData.canvas.height;
+    const newCtx = newCanvas.getContext('2d');
+    if(!newCtx) throw new Error("Failed to get context for re-added layer");
+    newCtx.drawImage(layerData.canvas, 0, 0);
+
+    const newLayer: ILayer = {
+      ...layerData, // Spread original data (id, name, isVisible)
+      canvas: newCanvas, // Use the new canvas
+      context: newCtx,   // Use the new context
+      // zIndex will be reassigned below
+    };
+
+    if (index !== undefined && index >= 0 && index <= this.layers.length) {
+      this.layers.splice(index, 0, newLayer);
+    } else {
+      this.layers.push(newLayer);
+    }
+
+    // Re-assign all z-indices to ensure consistency
+    this.layers.sort((a, b) => a.zIndex - b.zIndex); // Sort by old zIndex first if mixed
+    this.layers.forEach((l, i) => {
+      l.zIndex = i;
+    });
+
+    if (!this.activeLayerId && this.layers.length > 0) {
+        this.activeLayerId = this.layers[this.layers.length -1].id; // Set active if none
+    } else if (this.layers.length === 1) {
+        this.activeLayerId = this.layers[0].id;
+    }
+    // TODO: Emit event for UI update
+    return newLayer;
   }
 }
