@@ -25,6 +25,7 @@
   let showLayersModal = false; // New state variable
   let showBrushModal = false;
   let showColorModal = false;
+  let brushModalTool: 'pen' | 'eraser' = 'pen'; // Track which tool the brush modal is for
   let showSaveConfirmModal = false;
   let penColor = initialPenColor;
   let penSize = initialPenSize;
@@ -34,6 +35,13 @@
   let isFullscreen = false;
   let mainElement: HTMLElement;
   let canvasComponent: Canvas;
+
+  // Separate sizes for pen and eraser
+  let penBrushSize = initialPenSize;
+  let eraserSize = 20; // Default eraser size
+  
+  // Track which tool was last clicked for second-tap detection
+  let lastClickedTool: 'pen' | 'eraser' | null = null;
 
   // Event dispatcher for parent communication
   const dispatch = createEventDispatcher<{
@@ -50,6 +58,9 @@
   $: penColor = initialPenColor;
   $: penSize = initialPenSize;
   $: currentTool = initialTool;
+
+  // Update penSize based on current tool
+  $: penSize = currentTool === 'pen' ? penBrushSize : eraserSize;
 
   // Event handlers from Canvas for state updates
   function handleLayersUpdate(event: CustomEvent<readonly ILayer[]>) {
@@ -79,6 +90,11 @@
   }
   
   function handleSetSize(event: CustomEvent<number>) {
+    if (currentTool === 'pen') {
+      penBrushSize = event.detail;
+    } else {
+      eraserSize = event.detail;
+    }
     penSize = event.detail;
     dispatch('sizeChange', penSize);
   }
@@ -192,6 +208,32 @@
     return activeLayerId;
   }
 
+  // Handle tool button clicks - first click selects, second click opens size modal
+  function handleToolClick(tool: 'pen' | 'eraser') {
+    if (currentTool === tool && lastClickedTool === tool) {
+      // Second tap on already active tool - open size modal
+      brushModalTool = tool;
+      showBrushModal = true;
+    } else {
+      // First tap or switching tools - select tool
+      currentTool = tool;
+      dispatch('toolChange', currentTool);
+    }
+    lastClickedTool = tool;
+  }
+
+  // Handle color picker click to open color modal
+  function handleColorClick() {
+    showColorModal = true;
+  }
+
+  // Handle direct color input change
+  function handleColorInput(event: Event) {
+    const target = event.target as HTMLInputElement;
+    penColor = target.value;
+    dispatch('colorChange', penColor);
+  }
+
   onMount(() => {
     if (enableFullscreen) {
       document.addEventListener('fullscreenchange', onFullscreenChange);
@@ -245,10 +287,17 @@
   </div>
   <div class="bottom-toolbar">
     <button on:click={() => showLayersModal = !showLayersModal} title="Layers">❖</button>
-    <button on:click={() => showBrushModal = !showBrushModal} title="Brush">🖌️</button>
-    <button on:click={() => currentTool = 'pen'} title="Pen" class:active={currentTool === 'pen'}>✏️</button>
-    <button on:click={() => currentTool = 'eraser'} title="Eraser" class:active={currentTool === 'eraser'}>🐽</button>
-    <button on:click={() => showColorModal = !showColorModal} title="Color">🎨</button>
+    <button on:click={() => handleToolClick('pen')} title="Pen" class:active={currentTool === 'pen'}>✏️</button>
+    <button on:click={() => handleToolClick('eraser')} title="Eraser" class:active={currentTool === 'eraser'}>🐽</button>
+    
+    <!-- Direct color picker button -->
+    <input 
+      type="color" 
+      bind:value={penColor} 
+      on:input={handleColorInput}
+      title="Color: {penColor}"
+      class="color-picker-button"
+    />
 
     <button on:click={handleUndo} disabled={!canUndo} title="Undo">
       <span style="display: inline-block; transform: rotate(180deg);">➦</span>
@@ -260,8 +309,10 @@
     <button on:click={handleToggleFullscreen} title="Toggle Fullscreen">∷</button>
   </div>
 
+
+
   {#if showLayersModal}
-    <div class="modal-overlay" on:click={() => showLayersModal = false} on:keydown={(e) => e.key === 'Escape' && (showLayersModal = false)} role="button" tabindex="0">
+    <div class="modal-overlay" on:click={() => showLayersModal = false} on:keydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && (showLayersModal = false)} role="dialog" tabindex="0">
       <div class="modal-content layer-modal-content" on:click|stopPropagation>
         <LayerPanel
           layers={layers}
@@ -278,7 +329,7 @@
   {/if}
 
   {#if showSaveConfirmModal}
-    <div class="modal-overlay" on:click={() => showSaveConfirmModal = false} on:keydown={(e) => e.key === 'Escape' && (showSaveConfirmModal = false)} role="button" tabindex="0">
+    <div class="modal-overlay" on:click={() => showSaveConfirmModal = false} on:keydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && (showSaveConfirmModal = false)} role="button" tabindex="0">
       <div class="modal-content" on:click|stopPropagation>
         <ConfirmModal
           title="Save Image"
@@ -294,7 +345,7 @@
   {/if}
 
   {#if showColorModal}
-    <div class="modal-overlay" on:click={() => showColorModal = false} on:keydown={(e) => e.key === 'Escape' && (showColorModal = false)} role="button" tabindex="0">
+    <div class="modal-overlay" on:click={() => showColorModal = false} on:keydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && (showColorModal = false)} role="button" tabindex="0">
       <div class="modal-content" on:click|stopPropagation>
         <ColorModal
           bind:penColor={penColor}
@@ -310,15 +361,11 @@
   {/if}
 
   {#if showBrushModal}
-    <div class="modal-overlay" on:click={() => showBrushModal = false} on:keydown={(e) => e.key === 'Escape' && (showBrushModal = false)} role="button" tabindex="0">
+    <div class="modal-overlay" on:click={() => showBrushModal = false} on:keydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && (showBrushModal = false)} role="button" tabindex="0">
       <div class="modal-content" on:click|stopPropagation>
         <BrushModal
           bind:penSize={penSize}
-          on:setSize={() => {
-            /* penSize is already updated by the binding */
-            /* Dispatch the change for parent components if necessary */
-            dispatch('sizeChange', penSize);
-          }}
+          on:setSize={handleSetSize}
           on:close={() => showBrushModal = false}
         />
       </div>
@@ -366,6 +413,20 @@
     font-weight: bold;
   }
 
+  .color-picker-button {
+    width: 40px !important;
+    height: 40px !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 5px !important;
+  }
+
+  .color-picker-button:hover {
+    border-color: #bbb !important;
+  }
+
   .modal-overlay {
     position: fixed; /* Use fixed to cover the whole viewport */
     top: 0;
@@ -398,6 +459,8 @@
     /* Ensure toolbar is visible in fullscreen */
     z-index: 1000;
   }
+
+
   
   .sketchy-drawing:fullscreen :global(.layer-panel) {
     /* Ensure layer panel is visible in fullscreen */

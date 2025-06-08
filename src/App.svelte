@@ -24,7 +24,6 @@
     height="100vh"
     backgroundColor="#333"
     showToolbar={false}
-    showLayerPanel={false}
     initialPenColor="#ff0000"
     initialPenSize={8}
     initialTool="pen"
