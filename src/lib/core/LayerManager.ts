@@ -176,4 +176,16 @@ export class LayerManager {
     // TODO: Emit event for UI update
     return newLayer;
   }
+
+  renameLayer(id: string, newName: string): { oldName: string } | null {
+    const layer = this.layers.find(l => l.id === id);
+    if (layer) {
+      const oldName = layer.name;
+      if (oldName === newName) return null; // No change, no history needed
+      layer.name = newName;
+      // TODO: Emit event for UI update if not handled by history update propagation
+      return { oldName };
+    }
+    return null;
+  }
 }

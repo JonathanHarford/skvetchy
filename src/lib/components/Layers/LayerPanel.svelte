@@ -1,19 +1,23 @@
 <script lang="ts">
   import type { ILayer } from '../../core/LayerManager';
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, tick } from 'svelte'; // Import tick
 
   export let layers: readonly ILayer[] = [];
   export let activeLayerId: string | null = null;
-  // Removed onSelectLayer, onDeleteLayer, onToggleVisibility as direct props
-  // They will be dispatched as events now.
 
   const dispatch = createEventDispatcher<{
     selectLayer: string;
     deleteLayer: string;
     toggleVisibility: string;
     reorderLayer: { layerId: string; newIndex: number };
+    renameLayer: { layerId: string; newName: string }; // New event
   }>();
 
+  let editingLayerId: string | null = null;
+  let editingName = '';
+  let inputElement: HTMLInputElement | null = null; // For focusing
+
+  // ... (drag-and-drop handlers from previous step, assuming they are here) ...
   let draggedItemId: string | null = null;
   let dropTargetId: string | null = null; // For visual feedback
 
@@ -21,36 +25,30 @@
     event.dataTransfer!.effectAllowed = 'move';
     event.dataTransfer!.setData('text/plain', layerId);
     draggedItemId = layerId;
-    // (event.target as HTMLLIElement).style.opacity = '0.5'; // Optional: visual feedback
   }
 
   function handleDragOver(event: DragEvent, targetLayerId: string) {
-    event.preventDefault(); // Necessary to allow dropping
+    event.preventDefault();
     event.dataTransfer!.dropEffect = 'move';
     if (targetLayerId !== draggedItemId) {
-        dropTargetId = targetLayerId; // Highlight potential drop target
+        dropTargetId = targetLayerId;
     }
   }
-    function handleDragLeave(event: DragEvent) {
-        // Only clear if leaving a valid target that's not the dragged item itself
-        if ((event.target as HTMLLIElement).classList.contains('layer-item')) {
-             const leftLayerId = (event.target as HTMLLIElement).dataset.layerId;
-             if (leftLayerId === dropTargetId) { // Check if leaving the currently highlighted target
-                 dropTargetId = null;
-             }
-        }
+  function handleDragLeave(event: DragEvent) {
+    if ((event.target as HTMLLIElement).classList.contains('layer-item')) {
+         const leftLayerId = (event.target as HTMLLIElement).dataset.layerId;
+         if (leftLayerId === dropTargetId) {
+             dropTargetId = null;
+         }
     }
-
+  }
 
   function handleDrop(event: DragEvent, targetLayerId: string) {
     event.preventDefault();
     const sourceLayerId = event.dataTransfer!.getData('text/plain');
-    // (event.target as HTMLLIElement).style.opacity = '1'; // Reset opacity
-
     if (sourceLayerId && sourceLayerId !== targetLayerId) {
       const targetIndex = layers.findIndex(l => l.id === targetLayerId);
       if (targetIndex !== -1) {
-        // Dispatch event with sourceLayerId and targetIndex
         dispatch('reorderLayer', { layerId: sourceLayerId, newIndex: targetIndex });
       }
     }
@@ -58,16 +56,42 @@
     dropTargetId = null;
   }
 
-  function handleDragEnd(event: DragEvent) {
-    // Reset opacity if changed
-    // if (draggedItemId) {
-    //   const el = document.querySelector(`[data-layer-id="${draggedItemId}"]`) as HTMLLIElement;
-    //   if(el) el.style.opacity = '1';
-    // }
+  function handleDragEnd() {
     draggedItemId = null;
     dropTargetId = null;
   }
+  // End of drag-and-drop handlers
 
+
+  async function startEditing(layer: ILayer) {
+    editingLayerId = layer.id;
+    editingName = layer.name;
+    await tick(); // Wait for DOM update for the input field to appear
+    inputElement?.focus();
+    inputElement?.select();
+  }
+
+  function handleRenameInput(event: Event) {
+    editingName = (event.target as HTMLInputElement).value;
+  }
+
+  function submitRename(layerId: string) {
+    if (editingLayerId === layerId && editingName.trim() !== '') {
+      const originalLayer = layers.find(l => l.id === layerId);
+      if (originalLayer && originalLayer.name !== editingName.trim()) {
+        dispatch('renameLayer', { layerId, newName: editingName.trim() });
+      }
+    }
+    editingLayerId = null; // Exit editing mode
+  }
+
+  function handleRenameKeyDown(event: KeyboardEvent, layerId: string) {
+    if (event.key === 'Enter') {
+      submitRename(layerId);
+    } else if (event.key === 'Escape') {
+      editingLayerId = null; // Cancel editing
+    }
+  }
 </script>
 
 <div class="layer-panel">
@@ -78,27 +102,43 @@
         class="layer-item"
         class:active={layer.id === activeLayerId}
         class:drop-target={layer.id === dropTargetId && layer.id !== draggedItemId}
-        draggable="true"
-        on:dragstart={(e) => handleDragStart(e, layer.id)}
+        class:editing={layer.id === editingLayerId}
+        draggable={editingLayerId !== layer.id} /* Disable drag while editing this item */
+        on:dragstart={(e) => editingLayerId !== layer.id && handleDragStart(e, layer.id)}
         on:dragover={(e) => handleDragOver(e, layer.id)}
         on:dragleave={handleDragLeave}
         on:drop={(e) => handleDrop(e, layer.id)}
         on:dragend={handleDragEnd}
-        on:click={() => dispatch('selectLayer', layer.id)}
-        title={layer.name + ` (Z: ${layer.zIndex})`}
+        on:click={() => { if(editingLayerId !== layer.id) dispatch('selectLayer', layer.id); }}
+        title={editingLayerId === layer.id ? 'Press Enter to save, Esc to cancel' : layer.name + ` (Z: ${layer.zIndex})`}
         data-layer-id={layer.id}
       >
-        <span class="layer-name">{layer.name}</span>
+        {#if editingLayerId === layer.id}
+          <input
+            type="text"
+            bind:this={inputElement}
+            value={editingName}
+            on:input={handleRenameInput}
+            on:blur={() => submitRename(layer.id)}
+            on:keydown={(e) => handleRenameKeyDown(e, layer.id)}
+            class="rename-input"
+          />
+        {:else}
+          <span class="layer-name" on:dblclick={() => startEditing(layer)}>
+            {layer.name}
+          </span>
+        {/if}
         <div class="layer-controls">
           <button
             on:click|stopPropagation={() => dispatch('toggleVisibility', layer.id)}
             title={layer.isVisible ? 'Hide Layer' : 'Show Layer'}
+            disabled={editingLayerId === layer.id}
           >
             {layer.isVisible ? '👁️' : '🙈'}
           </button>
           <button
             on:click|stopPropagation={() => dispatch('deleteLayer', layer.id)}
-            disabled={layers.length <= 1}
+            disabled={layers.length <= 1 || editingLayerId === layer.id}
             title="Delete Layer"
           >
             🗑️
@@ -112,33 +152,37 @@
 <style>
   .layer-panel {
     position: absolute;
-    top: 70px; /* Below toolbar */
+    top: 80px; /* Adjust if toolbar wraps and takes more space */
     left: 10px;
-    width: 200px;
+    width: 180px; /* Slightly narrower */
+    max-height: calc(100vh - 100px); /* Prevent it from being too tall */
+    overflow-y: auto; /* Allow vertical scrolling if content exceeds max-height */
     background-color: #f9f9f9;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    padding: 10px;
-    z-index: 100; /* Ensure panel is above canvas */
+    padding: 8px; /* Slightly reduced padding */
+    z-index: 100;
   }
   h3 {
     margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 1em;
+    margin-bottom: 8px;
+    font-size: 0.95em; /* Slightly smaller font */
   }
   ul {
     list-style: none;
     padding: 0;
     margin: 0;
   }
-  li {
-    padding: 8px;
+  li.layer-item {
+    padding: 6px; /* Slightly reduced padding */
     border-bottom: 1px solid #eee;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 0.9em; /* Slightly smaller font */
+    transition: background-color 0.2s ease-in-out;
   }
   li:last-child {
     border-bottom: none;
@@ -146,6 +190,8 @@
   li.active {
     background-color: #e0e0ff;
     font-weight: bold;
+    border-left: 3px solid #6060ff;
+    padding-left: 3px; /* Adjust for border */
   }
   li:hover:not(.active) {
     background-color: #f0f0f0;
@@ -155,35 +201,35 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .rename-input {
+    flex-grow: 1;
+    margin-right: 5px;
+    padding: 2px 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 1em; /* Keep input font size readable */
   }
   .layer-controls {
     display: flex;
-    gap: 5px;
+    gap: 4px; /* Slightly reduced gap */
   }
   .layer-controls button {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 0.9em; /* Consistent with item font size */
     padding: 2px;
   }
    .layer-controls button:disabled {
     cursor: not-allowed;
     opacity: 0.5;
   }
-  li.layer-item { /* Added class for easier selection */
-    /* ... existing li styles ... */
-    transition: background-color 0.2s ease-in-out; /* Smooth transition for drop target highlight */
-  }
-  li.active {
-    background-color: #e0e0ff; /* Existing highlight */
-    border-left: 3px solid #6060ff; /* Enhanced highlight for active */
-    padding-left: 5px; /* Adjust padding for border */
+  li.editing {
+    background-color: #f0f0f0;
   }
   li.drop-target {
-    background-color: #d0d0ff; /* Highlight for potential drop target */
+    background-color: #d0d0ff;
   }
-  /* Optional: Style for the item being dragged */
-  /* li[draggable="true"]:active { opacity: 0.5; } This is not standard for drag */
-
 </style>

@@ -7,22 +7,23 @@ export type ActionType =
   | 'addLayer'
   | 'deleteLayer'
   | 'toggleLayerVisibility'
-  | 'reorderLayer' // Ensure this is present
-  | 'renameLayer'; // For future use
+  | 'reorderLayer'
+  | 'renameLayer'; // Already present from previous plan, ensure it's used
 
 export interface IHistoryAction {
   type: ActionType;
-  layerId: string; // Often the primary subject layer
+  layerId: string;
   imageDataBefore?: string;
   imageDataAfter?: string;
   deletedLayerData?: ILayer;
   deletedLayerIndex?: number;
   visibilityBefore?: boolean;
-  meta?: { // Used for reorderLayer and potentially others
+  meta?: {
     oldVisualIndex?: number;
     newVisualIndex?: number;
-    targetLayerId?: string; // ID of the layer that was moved
-    // other specific data
+    targetLayerId?: string;
+    oldName?: string; // For renameLayer
+    newName?: string; // For renameLayer
   };
 }
 

@@ -233,6 +233,18 @@
             // Note: This assumes reorderLayer correctly updates z-indices based on visual array order.
         }
         break;
+      case 'renameLayer':
+        if (action.meta && action.meta.oldName !== undefined && action.meta.newName !== undefined) {
+            const nameToSet = (isUndo ? action.meta.oldName : action.meta.newName) as string;
+            // Directly set the name if LayerManager's renameLayer is complex or has side effects not desired during undo/redo
+            const layer = layerManager.getLayers().find(l => l.id === action.layerId);
+            if (layer) {
+                layer.name = nameToSet;
+                // updateExternalState(); // Called by top-level undo/redo
+                // requestRedraw(); // Not needed for name change
+            }
+        }
+        break;
       // Add other cases as new actions are implemented
     }
     updateExternalState(false); // Update UI, but don't dispatch another history change from here
@@ -366,6 +378,22 @@ export function reorderLayer(layerId: string, newVisualIndex: number) {
         requestRedraw();
     }
 }
+
+export function renameLayer(layerId: string, newName: string) {
+    if (!layerManager || !historyManager) return;
+
+    const result = layerManager.renameLayer(layerId, newName);
+
+    if (result) { // Only add history if name actually changed
+      historyManager.addHistory({
+        type: 'renameLayer',
+        layerId: layerId,
+        meta: { oldName: result.oldName, newName: newName }
+      });
+      updateExternalState(); // This will trigger layersupdate for LayerPanel
+      // No explicit requestRedraw needed as name change doesn't affect canvas pixels
+    }
+  }
   // Make currentToolType reactive from props for App.svelte to control
   $: if(currentToolType && penTool && eraserTool) { // Check if tools are initialized
     const activeCtx = layerManager?.getActiveLayer()?.context;
@@ -375,6 +403,44 @@ export function reorderLayer(layerId: string, newVisualIndex: number) {
     else if (currentToolType === 'eraser') currentToolInstance = eraserTool;
 
     if (currentToolInstance?.activate && activeCtx) currentToolInstance.activate(activeCtx);
+  }
+
+export async function exportToPNG(): Promise<File | null> {
+    if (!layerManager || width === 0 || height === 0) {
+      console.error("Cannot export: LayerManager not ready or canvas dimensions are zero.");
+      return null;
+    }
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    if (!tempCtx) {
+      console.error("Failed to get context for temporary export canvas.");
+      return null;
+    }
+
+    // Draw a background if needed (e.g. if your app has a non-transparent bg not part of layers)
+    // tempCtx.fillStyle = '#ffffff'; // Or whatever background color is desired
+    // tempCtx.fillRect(0, 0, width, height);
+
+    const visibleLayers = layerManager.getLayers().filter(l => l.isVisible);
+    for (const layer of visibleLayers) {
+      tempCtx.drawImage(layer.canvas, 0, 0);
+    }
+
+    return new Promise((resolve) => {
+      tempCanvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], "skvetchy-drawing.png", { type: "image/png" });
+          resolve(file);
+        } else {
+          console.error("Failed to create blob for PNG export.");
+          resolve(null);
+        }
+      }, 'image/png');
+    });
   }
 
 </script>

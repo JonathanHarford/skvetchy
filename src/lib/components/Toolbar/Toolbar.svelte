@@ -6,7 +6,7 @@
   export let currentTool: 'pen' | 'eraser';
   export let canUndo: boolean = false;
   export let canRedo: boolean = false;
-  // No longer need onClearActiveLayer, onAddLayer here, they are in App.svelte
+  export let isFullscreen: boolean = false; // New prop to control button state
 
   const dispatch = createEventDispatcher<{
     setTool: 'pen' | 'eraser';
@@ -16,6 +16,8 @@
     redo: void;
     addLayer: void; // Added for consistency, App.svelte will handle
     clearActiveLayer: void; // Added for consistency
+    toggleFullscreen: void; // New event
+    exportPNG: void; // New event for exporting
   }>();
 
   function handleSetTool(tool: 'pen' | 'eraser') {
@@ -32,6 +34,14 @@
   }
   function handleClearLayer() {
     dispatch('clearActiveLayer');
+  }
+
+  function handleToggleFullscreen() {
+    dispatch('toggleFullscreen');
+  }
+
+  function handleExportPNG() {
+    dispatch('exportPNG');
   }
 
 </script>
@@ -52,6 +62,11 @@
 
   <button on:click={handleUndo} disabled={!canUndo}>Undo</button>
   <button on:click={handleRedo} disabled={!canRedo}>Redo</button>
+
+  <button on:click={handleToggleFullscreen}>
+    {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+  </button>
+  <button on:click={handleExportPNG}>Export PNG</button>
 </div>
 
 <style>
@@ -65,22 +80,29 @@
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     display: flex;
-    gap: 10px;
+    gap: 8px; /* Slightly reduced gap */
     align-items: center;
-    z-index: 100; /* Ensure toolbar is above canvas */
+    z-index: 100;
+    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+    max-width: calc(100vw - 20px); /* Prevent overflow */
   }
   input[type="color"] {
-    width: 40px;
+    width: 35px; /* Slightly smaller */
     height: 24px;
     border: 1px solid #ccc;
     padding: 0;
   }
-  button {
-    padding: 5px 10px;
+  button, .toolbar span { /* Added span for consistent sizing if needed */
+    padding: 5px 8px; /* Slightly reduced padding */
     border: 1px solid #ccc;
     border-radius: 3px;
     background-color: #fff;
     cursor: pointer;
+    font-size: 0.9em; /* Slightly smaller font */
+  }
+  .toolbar span {
+    border: none; /* Assuming span for penSize display doesn't need border */
+    padding-right: 2px;
   }
   button:hover {
     background-color: #f0f0f0;
