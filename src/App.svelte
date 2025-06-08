@@ -1,47 +1,71 @@
 <script lang="ts">
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
+  import Canvas from './lib/components/Canvas/Canvas.svelte';
+  import Toolbar from './lib/components/Toolbar/Toolbar.svelte';
+  import LayerPanel from './lib/components/Layers/LayerPanel.svelte';
+  import type { ILayer } from './lib/core/LayerManager'; // Adjust path as needed
+
+  // These will eventually be reactive stores or managed by Canvas.svelte
+  let layers: readonly ILayer[] = [];
+  let activeLayerId: string | null = null;
+  let penColor = '#000000'; // Default, will be bound
+  let penSize = 5; // Default, will be bound
+
+  // Placeholder functions - these would typically call methods on the Canvas component instance
+  // or a shared service/store. For now, they are stubs.
+  function handleAddLayer() {
+    console.log("App: Add Layer clicked");
+    // canvasComponentInstance.addLayer(); // Example of how it might work
+  }
+  function handleClearActiveLayer() {
+    console.log("App: Clear Active Layer clicked");
+    // canvasComponentInstance.clearActiveLayer();
+  }
+  function handleSelectLayer(id: string) {
+    console.log("App: Select Layer", id);
+    // canvasComponentInstance.setActiveLayer(id);
+  }
+  function handleDeleteLayer(id: string) {
+    console.log("App: Delete Layer", id);
+    // canvasComponentInstance.deleteLayer(id);
+  }
+  function handleToggleVisibility(id: string) {
+    console.log("App: Toggle Visibility", id);
+    // canvasComponentInstance.toggleLayerVisibility(id);
+  }
+
 </script>
 
 <main>
-  <div>
-    <a href="https://vite.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-  <h1>Vite + Svelte</h1>
-
-  <div class="card">
-    <Counter />
-  </div>
-
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank" rel="noreferrer">SvelteKit</a>, the official Svelte app framework powered by Vite!
-  </p>
-
-  <p class="read-the-docs">
-    Click on the Vite and Svelte logos to learn more
-  </p>
+  <Toolbar
+    bind:penColor={penColor}
+    bind:penSize={penSize}
+    on:addLayer={handleAddLayer}
+    on:clearActiveLayer={handleClearActiveLayer}
+  />
+  <LayerPanel
+    bind:layers={layers}
+    bind:activeLayerId={activeLayerId}
+    on:selectLayer={(e) => handleSelectLayer(e.detail)}
+    on:deleteLayer={(e) => handleDeleteLayer(e.detail)}
+    on:toggleVisibility={(e) => handleToggleVisibility(e.detail)}
+  />
+  <Canvas
+    bind:layers={layers}
+    bind:activeLayerId={activeLayerId}
+    bind:penColor={penColor}
+    bind:penSize={penSize}
+  />
 </main>
 
 <style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
-  }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
-  }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
-  }
-  .read-the-docs {
-    color: #888;
+  main {
+    width: 100vw;
+    height: 100vh;
+    /* display: flex; Already set, remove if Canvas is not meant to be centered */
+    /* justify-content: center; */
+    /* align-items: center; */
+    background-color: #333;
+    overflow: hidden;
+    position: relative; /* Needed for absolute positioning of Toolbar/LayerPanel */
   }
 </style>
