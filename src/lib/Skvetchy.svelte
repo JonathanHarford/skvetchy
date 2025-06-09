@@ -327,7 +327,7 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
     <div class="modal-overlay" on:click={() => showLayersModal = false} role="presentation">
-      <div class="modal-content layer-modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="layers-title">
+      <div class="modal-content layer-modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="layers-title" tabindex="0">
         <LayerPanel
           layers={layers}
           activeLayerId={activeLayerId}
@@ -347,7 +347,7 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
     <div class="modal-overlay" on:click={() => showSaveConfirmModal = false} role="presentation">
-      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="save-confirm-title">
+      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="save-confirm-title" tabindex="0">
         <ConfirmModal
           title="Save Image"
           message="Are you sure you want to save and download the image?"
@@ -366,7 +366,7 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
     <div class="modal-overlay" on:click={() => showColorModal = false} role="presentation">
-      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="color-modal-title">
+      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="color-modal-title" tabindex="0">
         <ColorModal
           bind:penColor={penColor}
           on:setColor={() => {
@@ -385,7 +385,7 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
     <div class="modal-overlay" on:click={() => showBrushModal = false} role="presentation">
-      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="brush-modal-title">
+      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="brush-modal-title" tabindex="0">
         <BrushModal
           bind:penSize={penSize}
           on:setSize={handleSetSize}
