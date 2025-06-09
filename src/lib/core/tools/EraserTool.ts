@@ -5,6 +5,7 @@ export class EraserTool implements ITool {
   private erasing = false;
   private lastX = 0;
   private lastY = 0;
+  private lastPressure = 0; // Track last pressure to detect changes
 
   activate(context: CanvasRenderingContext2D): void {
     context.globalCompositeOperation = 'destination-out';
@@ -21,8 +22,11 @@ export class EraserTool implements ITool {
     // globalCompositeOperation is set by activate method when tool is selected
     // activeLayer.context.globalCompositeOperation = 'destination-out'; // No longer needed here
 
+    const currentPressure = pressure || 1.0;
+    this.lastPressure = currentPressure;
+
     activeLayer.context.beginPath();
-    activeLayer.context.lineWidth = pressure ? penSize * pressure : penSize;
+    activeLayer.context.lineWidth = penSize * currentPressure;
     activeLayer.context.lineCap = 'round';
     activeLayer.context.lineJoin = 'round';
 
@@ -34,8 +38,23 @@ export class EraserTool implements ITool {
   onPointerMove(event: PointerEvent, activeLayer: ILayer, _color: string, penSize: number, pressure?: number): void {
     if (!this.erasing) return;
 
-    // globalCompositeOperation should be 'destination-out'
-    activeLayer.context.lineWidth = pressure ? penSize * pressure : penSize;
+    const currentPressure = pressure || 1.0;
+    
+    // If pressure has changed significantly, start a new path segment
+    if (Math.abs(currentPressure - this.lastPressure) > 0.05) {
+      // Finish the current path segment
+      activeLayer.context.lineTo(event.offsetX, event.offsetY);
+      activeLayer.context.stroke();
+      
+      // Start a new path segment with the new pressure
+      activeLayer.context.beginPath();
+      activeLayer.context.lineWidth = penSize * currentPressure;
+      activeLayer.context.lineCap = 'round';
+      activeLayer.context.lineJoin = 'round';
+      activeLayer.context.moveTo(this.lastX, this.lastY);
+      
+      this.lastPressure = currentPressure;
+    }
 
     activeLayer.context.lineTo(event.offsetX, event.offsetY);
     activeLayer.context.stroke();
@@ -48,6 +67,7 @@ export class EraserTool implements ITool {
     if (event.button !== 0) return;
     if (!this.erasing) return;
     this.erasing = false;
+    this.lastPressure = 0; // Reset pressure tracking
 
     // globalCompositeOperation is reset by deactivate method when tool is unselected
     // activeLayer.context.globalCompositeOperation = 'source-over'; // No longer needed here
