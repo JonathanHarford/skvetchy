@@ -4,13 +4,13 @@
   export let color: string = 'currentColor';
 
   // Import all SVG assets
-  import brushSvg from '../../assets/brush.svg?raw';
-  import eraserSvg from '../../assets/eraser.svg?raw';
-  import eyeOpenSvg from '../../assets/eye-open.svg?raw';
-  import eyeClosedSvg from '../../assets/eye-closed.svg?raw';
-  import layersSvg from '../../assets/layers.svg?raw';
-  import fullscreenSvg from '../../assets/fullscreen.svg?raw';
-  import checkSvg from '../../assets/check.svg?raw';
+  import brushSvg from './svg/brush.svg?raw';
+  import eraserSvg from './svg/eraser.svg?raw';
+  import eyeOpenSvg from './svg/eye-open.svg?raw';
+  import eyeClosedSvg from './svg/eye-closed.svg?raw';
+  import layersSvg from './svg/layers.svg?raw';
+  import fullscreenSvg from './svg/fullscreen.svg?raw';
+  import checkSvg from './svg/check.svg?raw';
 
   const icons: Record<string, string> = {
     brush: brushSvg,
