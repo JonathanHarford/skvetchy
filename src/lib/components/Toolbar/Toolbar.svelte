@@ -79,25 +79,25 @@
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     display: flex;
-    gap: 8px; /* Slightly reduced gap */
+    gap: 8px;
     align-items: center;
     z-index: 100;
     flex-wrap: wrap; /* Allow items to wrap on smaller screens */
     max-width: calc(100vw - 20px); /* Prevent overflow */
   }
   input[type="color"] {
-    width: 35px; /* Slightly smaller */
+    width: 35px;
     height: 24px;
     border: 1px solid #ccc;
     padding: 0;
   }
   button, .toolbar span { /* Added span for consistent sizing if needed */
-    padding: 5px 8px; /* Slightly reduced padding */
+    padding: 5px 8px;
     border: 1px solid #ccc;
     border-radius: 3px;
     background-color: #fff;
     cursor: pointer;
-    font-size: 0.9em; /* Slightly smaller font */
+    font-size: 0.9em;
   }
   .toolbar span {
     border: none; /* Assuming span for penSize display doesn't need border */

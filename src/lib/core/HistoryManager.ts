@@ -8,7 +8,7 @@ export type ActionType =
   | 'deleteLayer'
   | 'toggleLayerVisibility'
   | 'reorderLayer'
-  | 'renameLayer'; // Already present from previous plan, ensure it's used
+  | 'renameLayer';
 
 export interface IHistoryAction {
   type: ActionType;
@@ -36,10 +36,10 @@ export class HistoryManager {
 
   addHistory(action: IHistoryAction): void {
     if (this.undoStack.length >= this.maxHistorySize) {
-      this.undoStack.shift(); // Remove the oldest item
+      this.undoStack.shift();
     }
     this.undoStack.push(action);
-    this.redoStack = []; // Clear redo stack whenever a new action is added
+    this.redoStack = [];
     // TODO: Emit event: historyChanged (e.g., to enable/disable undo/redo buttons)
     console.log('History added:', action, this.undoStack.length);
   }

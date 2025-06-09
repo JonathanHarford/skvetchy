@@ -2,9 +2,9 @@
   import { onMount, tick, createEventDispatcher } from 'svelte';
   import { LayerManager, type ILayer } from '../../core/LayerManager';
   import { PenTool } from '../../core/tools/PenTool';
-  import { EraserTool } from '../../core/tools/EraserTool'; // Import EraserTool
+  import { EraserTool } from '../../core/tools/EraserTool';
   import type { ITool } from '../../core/tools/ITool';
-  import { HistoryManager, type IHistoryAction, captureCanvasState, type ActionType } from '../../core/HistoryManager'; // Import HistoryManager
+  import { HistoryManager, type IHistoryAction, captureCanvasState, type ActionType } from '../../core/HistoryManager';
 
   // Props from App.svelte
   export let penColor = '#000000';
@@ -27,7 +27,7 @@
   let height = 0;
 
   let layerManager: LayerManager;
-  let historyManager: HistoryManager; // Instance of HistoryManager
+  let historyManager: HistoryManager;
 
   // Tool management
   let currentToolInstance: ITool;
@@ -71,10 +71,10 @@
     if (!displayCtx) return;
 
     layerManager = new LayerManager(width, height);
-    historyManager = new HistoryManager(); // Initialize
+    historyManager = new HistoryManager();
     penTool = new PenTool();
     eraserTool = new EraserTool();
-    currentToolInstance = penTool; // Default tool
+    currentToolInstance = penTool;
 
     const activeCtx = layerManager.getActiveLayer()?.context;
     if (activeCtx && currentToolInstance.activate) currentToolInstance.activate(activeCtx);
@@ -270,7 +270,7 @@
     // History for addLayer (minimal for now, can be enhanced)
     historyManager.addHistory({
         type: 'addLayer',
-        layerId: newLayer.id, // Store the ID of the new layer
+        layerId: newLayer.id,
     });
     updateExternalState();
     requestRedraw();
@@ -321,8 +321,8 @@
 
         const deletedLayerDataClone: ILayer = {
             ...layerToDelete,
-            canvas: tempCanvas, // Store a copy of the canvas
-            context: tempCanvas.getContext('2d')!, // This context is for the clone
+            canvas: tempCanvas,
+            context: tempCanvas.getContext('2d')!,
         };
 
         historyManager.addHistory({

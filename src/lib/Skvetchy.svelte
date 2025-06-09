@@ -23,7 +23,7 @@
   // Internal state
   let layers: readonly ILayer[] = [];
   let activeLayerId: string | null = null;
-  let showLayersModal = false; // New state variable
+  let showLayersModal = false;
   let showBrushModal = false;
   let showColorModal = false;
   let brushModalTool: 'pen' | 'eraser' = 'pen'; // Track which tool the brush modal is for
@@ -401,7 +401,7 @@
     overflow: hidden;
     position: relative;
     display: flex;
-    flex-direction: column; /* Ensure vertical layout */
+    flex-direction: column;
   }
   
   .bottom-toolbar {
@@ -409,8 +409,8 @@
     justify-content: center;
     align-items: center;
     padding: 10px;
-    background-color: #f0f0f0; /* Example background color */
-    border-top: 1px solid #ccc; /* Example border */
+    background-color: #f0f0f0;
+    border-top: 1px solid #ccc;
   }
 
   .bottom-toolbar button {
@@ -420,7 +420,7 @@
     border: 1px solid #ccc;
     border-radius: 4px;
     cursor: pointer;
-    margin: 0 5px; /* Spacing between buttons */
+    margin: 0 5px;
     line-height: 1; /* Ensures icon is centered if it has descenders/ascenders */
   }
   .bottom-toolbar button:hover:not(:disabled) {

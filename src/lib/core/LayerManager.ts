@@ -13,7 +13,6 @@ export class LayerManager {
   private nextLayerId = 0;
 
   constructor(initialWidth: number, initialHeight: number) {
-    // Initialize with a base layer
     this.addLayer('Background', initialWidth, initialHeight);
   }
 
@@ -59,7 +58,6 @@ export class LayerManager {
     if (this.activeLayerId === id) {
       this.activeLayerId = this.layers[this.layers.length - 1]?.id || null;
     }
-    // Re-assign z-indices
     this.layers.sort((a, b) => a.zIndex - b.zIndex).forEach((layer, index) => {
         layer.zIndex = index;
     });
@@ -100,7 +98,6 @@ export class LayerManager {
 
     const oldVisualZIndex = layerToMove.zIndex; // Capture old zIndex before re-assigning
 
-    // Re-assign all z-indices based on new array order
     this.layers.forEach((layer, index) => {
         layer.zIndex = index;
     });
@@ -150,10 +147,9 @@ export class LayerManager {
     newCtx.drawImage(layerData.canvas, 0, 0);
 
     const newLayer: ILayer = {
-      ...layerData, // Spread original data (id, name, isVisible)
-      canvas: newCanvas, // Use the new canvas
-      context: newCtx,   // Use the new context
-      // zIndex will be reassigned below
+      ...layerData,
+      canvas: newCanvas,
+      context: newCtx,
     };
 
     if (index !== undefined && index >= 0 && index <= this.layers.length) {
@@ -162,7 +158,6 @@ export class LayerManager {
       this.layers.push(newLayer);
     }
 
-    // Re-assign all z-indices to ensure consistency
     this.layers.sort((a, b) => a.zIndex - b.zIndex); // Sort by old zIndex first if mixed
     this.layers.forEach((l, i) => {
       l.zIndex = i;

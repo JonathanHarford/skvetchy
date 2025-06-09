@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ILayer } from '../../core/LayerManager';
-  import { createEventDispatcher, tick } from 'svelte'; // Import tick
+  import { createEventDispatcher, tick } from 'svelte';
   import Icon from '../Icon.svelte';
 
   export let layers: readonly ILayer[] = [];
@@ -19,7 +19,6 @@
   let editingName = '';
   let inputElement: HTMLInputElement | null = null; // For focusing
 
-  // ... (drag-and-drop handlers from previous step, assuming they are here) ...
   let draggedItemId: string | null = null;
   let dropTargetId: string | null = null; // For visual feedback
 
@@ -91,14 +90,14 @@
         dispatch('renameLayer', { layerId, newName: editingName.trim() });
       }
     }
-    editingLayerId = null; // Exit editing mode
+    editingLayerId = null;
   }
 
   function handleRenameKeyDown(event: KeyboardEvent, layerId: string) {
     if (event.key === 'Enter') {
       submitRename(layerId);
     } else if (event.key === 'Escape') {
-      editingLayerId = null; // Cancel editing
+      editingLayerId = null;
     }
   }
 
@@ -196,7 +195,7 @@
   
   h3 {
     margin: 0;
-    font-size: 0.95em; /* Slightly smaller font */
+    font-size: 0.95em;
   }
   
   .add-layer-btn {
@@ -226,11 +225,11 @@
   }
   li.layer-item {
     border-bottom: 1px solid #eee;
-    font-size: 0.9em; /* Slightly smaller font */
+    font-size: 0.9em;
     transition: background-color 0.2s ease-in-out;
   }
   .layer-content {
-    padding: 6px; /* Slightly reduced padding */
+    padding: 6px;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
@@ -243,7 +242,7 @@
     background-color: #e0e0ff;
     font-weight: bold;
     border-left: 3px solid #6060ff;
-    padding-left: 3px; /* Adjust for border */
+    padding-left: 3px;
   }
   li:hover:not(.active) {
     background-color: #f0f0f0;
@@ -265,7 +264,7 @@
   }
   .layer-controls {
     display: flex;
-    gap: 4px; /* Slightly reduced gap */
+    gap: 4px;
   }
   .layer-controls button {
     background: none;

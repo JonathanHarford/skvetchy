@@ -1,5 +1,5 @@
 import type { ILayer } from '../LayerManager';
-import type { ITool } from './ITool'; // Changed import
+import type { ITool } from './ITool';
 
 export class EraserTool implements ITool {
   private erasing = false;
@@ -42,11 +42,9 @@ export class EraserTool implements ITool {
     
     // If pressure has changed significantly, start a new path segment
     if (Math.abs(currentPressure - this.lastPressure) > 0.05) {
-      // Finish the current path segment
       activeLayer.context.lineTo(event.offsetX, event.offsetY);
       activeLayer.context.stroke();
       
-      // Start a new path segment with the new pressure
       activeLayer.context.beginPath();
       activeLayer.context.lineWidth = penSize * currentPressure;
       activeLayer.context.lineCap = 'round';
