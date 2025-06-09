@@ -2,6 +2,8 @@
 
 A powerful, customizable drawing/sketching component for Svelte applications built with Konva.js.
 
+[Demo](https://JonathanHarford.github.io/skvetchy)
+
 ## Features
 
 - 🎨 Multi-layer drawing support
