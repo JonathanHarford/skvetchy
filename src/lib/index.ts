@@ -1,4 +1,3 @@
-// Main component export
 export { default as Skvetchy } from './Skvetchy.svelte';
 
 // Export types that consumers might need
