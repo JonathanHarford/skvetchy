@@ -19,6 +19,10 @@
   export let initialTool: 'pen' | 'eraser' = 'pen';
   export let enableFullscreen = true;
   export let className = '';
+  
+  // Required image dimensions for export
+  export let imageWidth: number;
+  export let imageHeight: number;
 
   // Internal state
   let layers: readonly ILayer[] = [];
@@ -51,7 +55,7 @@
     toolChange: 'pen' | 'eraser';
     colorChange: string;
     sizeChange: number;
-    export: Blob;
+    export: File;
     fullscreenToggle: boolean;
   }>();
 
@@ -273,18 +277,20 @@
     />
   {/if}
   
-  <div style="flex-grow: 1; position: relative; overflow: hidden; width: 100%; height: 100%;">
+  <div class="canvas-wrapper" style="--aspect-ratio: {imageWidth / imageHeight};">
     <Canvas
       bind:this={canvasComponent}
       penColor={penColor}
-    penSize={penSize}
-    currentToolType={currentTool}
-    on:layersupdate={handleLayersUpdate}
-    on:activeidupdate={handleActiveIdUpdate}
-    on:historychange={handleHistoryChange}
-    layers={layers}
-    activeLayerId={activeLayerId}
-  />
+      penSize={penSize}
+      currentToolType={currentTool}
+      imageWidth={imageWidth}
+      imageHeight={imageHeight}
+      on:layersupdate={handleLayersUpdate}
+      on:activeidupdate={handleActiveIdUpdate}
+      on:historychange={handleHistoryChange}
+      layers={layers}
+      activeLayerId={activeLayerId}
+    />
   </div>
   <div class="bottom-toolbar">
     <button on:click={() => showLayersModal = !showLayersModal} title="Layers">
@@ -402,6 +408,19 @@
     position: relative;
     display: flex;
     flex-direction: column;
+  }
+  
+  .canvas-wrapper {
+    flex-grow: 1;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: var(--aspect-ratio);
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   
   .bottom-toolbar {

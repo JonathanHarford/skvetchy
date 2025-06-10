@@ -20,8 +20,8 @@
 <main>
   <Skvetchy
     bind:this={sketchyComponent}
-    width="100vw"
-    height="100vh"
+    imageWidth={1920}
+    imageHeight={1080}
     backgroundColor="#333"
     showToolbar={false}
     initialPenColor="#ff0000"
@@ -36,8 +36,6 @@
 
 <style>
   main {
-    width: 100vw;
-    height: 100vh;
     margin: 0;
     padding: 0;
   }

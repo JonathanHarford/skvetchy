@@ -11,6 +11,11 @@
   export let penSize = 5;
   export let layers: readonly ILayer[] = []; // Bound from App, updated via dispatch
   export let activeLayerId: string | null = null; // Bound from App, updated via dispatch
+  export let currentToolType: 'pen' | 'eraser' = 'pen'; // Controlled by Toolbar via App.svelte
+  
+  // Image export dimensions
+  export let imageWidth: number;
+  export let imageHeight: number;
 
   // Event dispatcher for App.svelte
   const dispatch = createEventDispatcher<{
@@ -33,7 +38,6 @@
   let currentToolInstance: ITool;
   let penTool: PenTool;
   let eraserTool: EraserTool;
-  export let currentToolType: 'pen' | 'eraser' = 'pen'; // Controlled by Toolbar via App.svelte
 
   // For capturing state before a stroke
   let imageDataBeforeStroke: string | undefined = undefined;
@@ -406,20 +410,27 @@ export function renameLayer(layerId: string, newName: string) {
   }
 
 export async function exportToPNG(): Promise<File | null> {
-    if (!layerManager || width === 0 || height === 0) {
-      console.error("Cannot export: LayerManager not ready or canvas dimensions are zero.");
+    if (!layerManager || width === 0 || height === 0 || !imageWidth || !imageHeight) {
+      console.error("Cannot export: LayerManager not ready, canvas dimensions are zero, or image dimensions not specified.");
       return null;
     }
 
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = width;
-    tempCanvas.height = height;
+    tempCanvas.width = imageWidth;
+    tempCanvas.height = imageHeight;
     const tempCtx = tempCanvas.getContext('2d');
 
     if (!tempCtx) {
       console.error("Failed to get context for temporary export canvas.");
       return null;
     }
+
+    // Calculate scaling factors to fit the viewport content into the export dimensions
+    const scaleX = imageWidth / width;
+    const scaleY = imageHeight / height;
+
+    // Apply scaling to match the export resolution
+    tempCtx.scale(scaleX, scaleY);
 
     // Draw a background if needed (e.g. if your app has a non-transparent bg not part of layers)
     // tempCtx.fillStyle = '#ffffff'; // Or whatever background color is desired

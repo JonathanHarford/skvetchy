@@ -39,6 +39,8 @@ npm install skvetchy
   bind:this={drawingComponent}
   width="800px"
   height="600px"
+  imageWidth={1920}
+  imageHeight={1080}
   on:export={handleExport}
 />
 ```
@@ -49,6 +51,8 @@ npm install skvetchy
 |------|------|---------|-------------|
 | `width` | `string \| number` | `'100%'` | Width of the drawing area |
 | `height` | `string \| number` | `'100%'` | Height of the drawing area |
+| `imageWidth` | `number` | **Required** | Width of the exported PNG image (also defines viewport aspect ratio) |
+| `imageHeight` | `number` | **Required** | Height of the exported PNG image (also defines viewport aspect ratio) |
 | `backgroundColor` | `string` | `'#333'` | Background color of the component |
 | `showToolbar` | `boolean` | `true` | Whether to show the toolbar |
 | `showLayerPanel` | `boolean` | `true` | Whether to show the layer panel |
@@ -67,7 +71,7 @@ npm install skvetchy
 | `toolChange` | `'pen' \| 'eraser'` | Fired when tool is changed |
 | `colorChange` | `string` | Fired when pen color changes |
 | `sizeChange` | `number` | Fired when pen size changes |
-| `export` | `Blob` | Fired when image is exported |
+| `export` | `File` | Fired when image is exported |
 | `fullscreenToggle` | `boolean` | Fired when fullscreen is toggled |
 
 ## Methods
