@@ -1,6 +1,6 @@
 {
   "name": "skvetchy",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "homepage": "https://JonathanHarford.github.io/skvetchy",
   "type": "module",
   "main": "./dist/index.js",
