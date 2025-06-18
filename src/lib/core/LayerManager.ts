@@ -35,12 +35,33 @@ export class LayerManager {
   }
 
   addLayer(name: string = `Layer ${this.layers.length + 1}`, width: number, height: number): ILayer {
-    const newZIndex = this.layers.length > 0 ? Math.max(...this.layers.map(l => l.zIndex)) + 1 : 0;
-    const layer = this.createLayer(name, width, height, newZIndex);
-    this.layers.push(layer);
-    if (!this.activeLayerId) {
-      this.activeLayerId = layer.id;
+    // Find the currently active layer to insert the new layer above it
+    const activeLayer = this.getActiveLayer();
+    let insertIndex: number;
+    let newZIndex: number;
+
+    if (activeLayer) {
+      // Insert the new layer directly above the active layer
+      insertIndex = this.layers.findIndex(l => l.id === activeLayer.id) + 1;
+      newZIndex = activeLayer.zIndex + 1;
+      
+      // Shift zIndex of all layers above the insertion point
+      this.layers.forEach(layer => {
+        if (layer.zIndex >= newZIndex) {
+          layer.zIndex += 1;
+        }
+      });
+    } else {
+      // If no active layer (shouldn't happen normally), add at the end
+      insertIndex = this.layers.length;
+      newZIndex = this.layers.length > 0 ? Math.max(...this.layers.map(l => l.zIndex)) + 1 : 0;
     }
+
+    const layer = this.createLayer(name, width, height, newZIndex);
+    this.layers.splice(insertIndex, 0, layer);
+    
+    // Make the newly created layer active
+    this.activeLayerId = layer.id;
     // TODO: Emit event for UI update
     return layer;
   }

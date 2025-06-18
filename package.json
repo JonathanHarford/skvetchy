@@ -24,8 +24,8 @@
     "package": "svelte-package -o dist",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
-    "test": "vitest",
-    "test:run": "vitest run",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepublishOnly": "npm run build",
     "deploy": "npm run build:pages && gh-pages -d dist -f"
   },

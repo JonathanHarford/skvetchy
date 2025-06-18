@@ -324,8 +324,6 @@
     <button on:click={handleToggleFullscreen} title="Toggle Fullscreen">
       <Icon name="fullscreen" size={20} />
     </button>
-    <!-- package version -->
-    <div>2.0.2</div>
   </div>
 
 

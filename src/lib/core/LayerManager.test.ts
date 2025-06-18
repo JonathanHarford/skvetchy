@@ -1,0 +1,105 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { LayerManager } from './LayerManager';
+
+// Mock canvas and context creation
+const mockCanvas = {
+  width: 0,
+  height: 0,
+  getContext: vi.fn(() => ({
+    beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    stroke: vi.fn(),
+    clearRect: vi.fn(),
+    drawImage: vi.fn(),
+  })),
+} as any as HTMLCanvasElement;
+
+const mockCreateElement = vi.fn(() => mockCanvas);
+
+// Mock document.createElement
+Object.defineProperty(document, 'createElement', {
+  value: mockCreateElement,
+  writable: true,
+});
+
+describe('LayerManager', () => {
+  let layerManager: LayerManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    layerManager = new LayerManager(800, 600);
+  });
+
+  describe('addLayer', () => {
+    it('should add new layers directly above the currently selected layer', () => {
+      // Initially, there should be one background layer
+      expect(layerManager.getLayers()).toHaveLength(1);
+      const backgroundLayer = layerManager.getLayers()[0];
+      expect(backgroundLayer.name).toBe('Background');
+      expect(backgroundLayer.zIndex).toBe(0);
+
+      // Add a second layer - should go above background
+      const layer1 = layerManager.addLayer('Layer 1', 800, 600);
+      expect(layerManager.getLayers()).toHaveLength(2);
+      expect(layer1.zIndex).toBe(1);
+      expect(backgroundLayer.zIndex).toBe(0); // Background should stay at 0
+
+      // Select the background layer and add a new layer
+      layerManager.setActiveLayer(backgroundLayer.id);
+      const layer2 = layerManager.addLayer('Layer 2', 800, 600);
+      
+      // Layer 2 should be inserted above background (zIndex 1)
+      // and Layer 1 should be shifted up to zIndex 2
+      const allLayers = layerManager.getLayers();
+      expect(allLayers).toHaveLength(3);
+      
+      const updatedBackground = allLayers.find(l => l.id === backgroundLayer.id);
+      const updatedLayer1 = allLayers.find(l => l.id === layer1.id);
+      const newLayer2 = allLayers.find(l => l.id === layer2.id);
+
+      expect(updatedBackground?.zIndex).toBe(0);
+      expect(newLayer2?.zIndex).toBe(1); // Should be directly above background
+      expect(updatedLayer1?.zIndex).toBe(2); // Should be shifted up
+    });
+
+    it('should maintain proper layer ordering when adding multiple layers', () => {
+      const layers = layerManager.getLayers();
+      const backgroundLayer = layers[0];
+
+      // Add several layers - each new layer becomes active and subsequent layers go above it
+      const layer1 = layerManager.addLayer('Layer 1', 800, 600); // Goes above Background, becomes active
+      const layer2 = layerManager.addLayer('Layer 2', 800, 600); // Goes above Layer1, becomes active  
+      const layer3 = layerManager.addLayer('Layer 3', 800, 600); // Goes above Layer2, becomes active
+
+      // Now select layer 1 and add a new layer above it
+      layerManager.setActiveLayer(layer1.id);
+      const layer4 = layerManager.addLayer('Layer 4', 800, 600);
+
+      const allLayers = layerManager.getLayers();
+      expect(allLayers).toHaveLength(5);
+
+      // Expected order after sequential additions:
+      // Background(0) -> Layer1(1) -> Layer2(2) -> Layer3(3)
+      // Then select Layer1 and add Layer4 above it:
+      // Background(0) -> Layer1(1) -> Layer4(2) -> Layer2(3) -> Layer3(4)
+      const sortedLayers = [...allLayers].sort((a, b) => a.zIndex - b.zIndex);
+      expect(sortedLayers[0].id).toBe(backgroundLayer.id);
+      expect(sortedLayers[1].id).toBe(layer1.id);
+      expect(sortedLayers[2].id).toBe(layer4.id);
+      expect(sortedLayers[3].id).toBe(layer2.id);
+      expect(sortedLayers[4].id).toBe(layer3.id);
+    });
+
+    it('should handle adding layers when no layer is active', () => {
+      // Clear the active layer
+      layerManager.setActiveLayer('non-existent-id');
+      
+      const initialLayers = layerManager.getLayers();
+      const layer1 = layerManager.addLayer('Test Layer', 800, 600);
+      
+      // Should add at the end when no active layer
+      expect(layer1.zIndex).toBe(initialLayers.length);
+    });
+  });
+}); 
