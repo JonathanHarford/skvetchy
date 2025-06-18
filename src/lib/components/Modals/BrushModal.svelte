@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
 
   export let penSize: number; // Initial value from Skvetchy, bound two-way by Skvetchy
+  export let toolType: 'pen' | 'eraser' = 'pen'; // Tool type to determine title
 
   const dispatch = createEventDispatcher<{
     setSize: number; // Dispatched when size changes
@@ -13,10 +14,12 @@
   function handleInput() {
     dispatch('setSize', penSize);
   }
+
+  $: title = toolType === 'pen' ? 'Brush Size' : 'Eraser Size';
 </script>
 
 <div class="brush-modal-container">
-  <h4>Brush Size</h4>
+  <h4>{title}</h4>
   <div class="brush-controls">
     <input
       type="range"

@@ -210,7 +210,13 @@
 
   // Handle tool button clicks - single click only to select tool
   function handleToolClick(tool: 'pen' | 'eraser') {
-    // Single tap to select tool (double-tap functionality disabled)
+    // If tapping the same tool that's already selected, show the brush modal
+    if (currentTool === tool) {
+      showBrushModal = true;
+      return;
+    }
+    
+    // Otherwise, select the tool
     currentTool = tool;
     dispatch('toolChange', currentTool);
   }
@@ -351,6 +357,7 @@
       <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="brush-modal-title" tabindex="0">
         <BrushModal
           bind:penSize={penSize}
+          toolType={currentTool}
           on:setSize={handleSetSize}
           on:close={() => showBrushModal = false}
         />
