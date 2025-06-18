@@ -16,7 +16,7 @@
   export let initialPenColor = '#000000';
   export let initialPenSize = 5;
   export let initialTool: 'pen' | 'eraser' = 'pen';
-  export let enableFullscreen = true;
+  export let enableFullscreen = false;
   export let className = '';
   
   // Required image dimensions for export
@@ -303,9 +303,11 @@
       <Icon name="check" size={20} />
     </button>
 
+    {#if enableFullscreen}
     <button on:click={handleToggleFullscreen} title="Toggle Fullscreen">
       <Icon name="fullscreen" size={20} />
     </button>
+    {/if}
   </div>
 
 
