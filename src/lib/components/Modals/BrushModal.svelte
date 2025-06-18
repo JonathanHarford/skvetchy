@@ -1,21 +1,22 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
 
-  export let penSize: number; // Initial value from Skvetchy, bound two-way by Skvetchy
-  export let toolType: 'pen' | 'eraser' | 'fill' = 'pen'; // Tool type to determine title
+  let { penSize, toolType = 'pen' } = $props<{
+    penSize: number;
+    toolType?: 'pen' | 'eraser' | 'fill';
+  }>();
 
   const dispatch = createEventDispatcher<{
     setSize: number; // Dispatched when size changes
     close: void;   // Dispatched to close the modal
   }>();
 
-  // This function will be called on input.
-  // penSize prop is already updated by bind:value on the input.
-  function handleInput() {
-    dispatch('setSize', penSize);
+  function handleInput(event: Event) {
+    const newSize = parseInt((event.target as HTMLInputElement).value);
+    dispatch('setSize', newSize);
   }
 
-  $: title = toolType === 'pen' ? 'Brush Size' : toolType === 'eraser' ? 'Eraser Size' : 'Fill Bucket';
+  const title = $derived(toolType === 'pen' ? 'Brush Size' : toolType === 'eraser' ? 'Eraser Size' : 'Fill Bucket');
 </script>
 
 <div class="brush-modal-container">
@@ -26,12 +27,12 @@
       id="brushSize"
       min="1"
       max="100"
-      bind:value={penSize}
-      on:input={handleInput}
+      value={penSize}
+      oninput={handleInput}
     />
     <span>{penSize}px</span>
   </div>
-  <button on:click={() => dispatch('close')}>Close</button>
+  <button onclick={() => dispatch('close')}>Close</button>
 </div>
 
 <style>

@@ -3,8 +3,10 @@
   import { createEventDispatcher, tick } from 'svelte';
   import Icon from '../Icon.svelte';
 
-  export let layers: readonly ILayer[] = [];
-  export let activeLayerId: string | null = null;
+  let { layers = [], activeLayerId = null } = $props<{
+    layers?: readonly ILayer[];
+    activeLayerId?: string | null;
+  }>();
 
   const dispatch = createEventDispatcher<{
     selectLayer: string;
@@ -15,12 +17,12 @@
     addLayer: void; // New event for adding layers
   }>();
 
-  let editingLayerId: string | null = null;
-  let editingName = '';
-  let inputElement: HTMLInputElement | null = null; // For focusing
+  let editingLayerId = $state<string | null>(null);
+  let editingName = $state('');
+  let inputElement = $state<HTMLInputElement | null>(null); // For focusing
 
-  let draggedItemId: string | null = null;
-  let dropTargetId: string | null = null; // For visual feedback
+  let draggedItemId = $state<string | null>(null);
+  let dropTargetId = $state<string | null>(null); // For visual feedback
 
   function handleDragStart(event: DragEvent, layerId: string) {
     event.dataTransfer!.effectAllowed = 'move';
@@ -48,11 +50,9 @@
     event.preventDefault();
     const sourceLayerId = event.dataTransfer!.getData('text/plain');
     if (sourceLayerId && sourceLayerId !== targetLayerId) {
-      // Since we're displaying layers in reverse order, we need to adjust the target index
       const reversedLayers = [...layers].reverse();
       const targetIndex = reversedLayers.findIndex(l => l.id === targetLayerId);
       if (targetIndex !== -1) {
-        // Convert back to original array index
         const originalTargetIndex = layers.length - 1 - targetIndex;
         dispatch('reorderLayer', { layerId: sourceLayerId, newIndex: originalTargetIndex });
       }
@@ -65,7 +65,6 @@
     draggedItemId = null;
     dropTargetId = null;
   }
-  // End of drag-and-drop handlers
 
   function handleAddLayer() {
     dispatch('addLayer');
@@ -74,7 +73,7 @@
   async function startEditing(layer: ILayer) {
     editingLayerId = layer.id;
     editingName = layer.name;
-    await tick(); // Wait for DOM update for the input field to appear
+    await tick();
     inputElement?.focus();
     inputElement?.select();
   }
@@ -85,7 +84,7 @@
 
   function submitRename(layerId: string) {
     if (editingLayerId === layerId && editingName.trim() !== '') {
-      const originalLayer = layers.find(l => l.id === layerId);
+      const originalLayer = layers.find((l: ILayer) => l.id === layerId);
       if (originalLayer && originalLayer.name !== editingName.trim()) {
         dispatch('renameLayer', { layerId, newName: editingName.trim() });
       }
@@ -101,14 +100,13 @@
     }
   }
 
-  // Create a reversed array for display (top layers first)
-  $: displayLayers = [...layers].reverse();
+  const displayLayers = $derived([...layers].reverse());
 </script>
 
 <div class="layer-panel">
   <div class="layer-header">
     <h3>Layers</h3>
-    <button class="add-layer-btn" on:click={handleAddLayer} title="Add Layer">+</button>
+    <button class="add-layer-btn" onclick={handleAddLayer} title="Add Layer">+</button>
   </div>
   <ul>
     {#each displayLayers as layer (layer.id)}
@@ -118,17 +116,17 @@
         class:drop-target={layer.id === dropTargetId && layer.id !== draggedItemId}
         class:editing={layer.id === editingLayerId}
         draggable={editingLayerId !== layer.id}
-        on:dragstart={(e) => editingLayerId !== layer.id && handleDragStart(e, layer.id)}
-        on:dragover={(e) => handleDragOver(e, layer.id)}
-        on:dragleave={handleDragLeave}
-        on:drop={(e) => handleDrop(e, layer.id)}
-        on:dragend={handleDragEnd}
+        ondragstart={(e) => editingLayerId !== layer.id && handleDragStart(e, layer.id)}
+        ondragover={(e) => handleDragOver(e, layer.id)}
+        ondragleave={handleDragLeave}
+        ondrop={(e) => handleDrop(e, layer.id)}
+        ondragend={handleDragEnd}
         data-layer-id={layer.id}
       >
         <div
           class="layer-content"
-          on:click={() => { if(editingLayerId !== layer.id) dispatch('selectLayer', layer.id); }}
-          on:keydown={(e) => { if((e.key === 'Enter' || e.key === ' ') && editingLayerId !== layer.id) dispatch('selectLayer', layer.id); }}
+          onclick={() => { if(editingLayerId !== layer.id) dispatch('selectLayer', layer.id); }}
+          onkeydown={(e) => { if((e.key === 'Enter' || e.key === ' ') && editingLayerId !== layer.id) dispatch('selectLayer', layer.id); }}
           tabindex="0"
           role="button"
           title={editingLayerId === layer.id ? 'Press Enter to save, Esc to cancel' : layer.name + ` (Z: ${layer.zIndex})`}
@@ -138,26 +136,26 @@
             type="text"
             bind:this={inputElement}
             value={editingName}
-            on:input={handleRenameInput}
-            on:blur={() => submitRename(layer.id)}
-            on:keydown={(e) => handleRenameKeyDown(e, layer.id)}
+            oninput={handleRenameInput}
+            onblur={() => submitRename(layer.id)}
+            onkeydown={(e) => handleRenameKeyDown(e, layer.id)}
             class="rename-input"
           />
         {:else}
-          <span class="layer-name" role="button" tabindex="0" on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') startEditing(layer); }}>
+          <span class="layer-name" role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') startEditing(layer); }}>
             {layer.name}
           </span>
         {/if}
         <div class="layer-controls">
           <button
-            on:click|stopPropagation={() => dispatch('toggleVisibility', layer.id)}
+            onclick={(e) => { e.stopPropagation(); dispatch('toggleVisibility', layer.id); }}
             title={layer.isVisible ? 'Hide Layer' : 'Show Layer'}
             disabled={editingLayerId === layer.id}
           >
             <Icon name={layer.isVisible ? 'eye-open' : 'eye-closed'} size={16} />
           </button>
           <button
-            on:click|stopPropagation={() => dispatch('deleteLayer', layer.id)}
+            onclick={(e) => { e.stopPropagation(); dispatch('deleteLayer', layer.id); }}
             disabled={layers.length <= 1 || editingLayerId === layer.id}
             title="Delete Layer"
           >

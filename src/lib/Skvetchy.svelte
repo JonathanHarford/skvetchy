@@ -5,42 +5,52 @@
   import ColorModal from './components/Modals/ColorModal.svelte';
   import Icon from './components/Icon.svelte';
   import type { ILayer } from './core/LayerManager';
-  import { onMount, onDestroy, createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from 'svelte';
 
   // Props for customization
-  export let width: string | number = '100%';
-  export let height: string | number = '100%';
-  export let backgroundColor = '#333';
-
-  export let initialPenColor = '#000000';
-  export let initialPenSize = 5;
-  export let initialTool: 'pen' | 'eraser' | 'fill' = 'pen';
-  export let enableFullscreen = false;
-  export let enableDownload = false;
-  export let className = '';
-  
-  // Required image dimensions for export
-  export let imageWidth: number;
-  export let imageHeight: number;
+  let {
+    width = '100%',
+    height = '100%',
+    backgroundColor = '#333',
+    initialPenColor = '#000000',
+    initialPenSize = 5,
+    initialTool = 'pen',
+    enableFullscreen = false,
+    enableDownload = false,
+    className = '',
+    imageWidth,
+    imageHeight
+  } = $props<{
+    width?: string | number;
+    height?: string | number;
+    backgroundColor?: string;
+    initialPenColor?: string;
+    initialPenSize?: number;
+    initialTool?: 'pen' | 'eraser' | 'fill';
+    enableFullscreen?: boolean;
+    enableDownload?: boolean;
+    className?: string;
+    imageWidth: number;
+    imageHeight: number;
+  }>();
 
   // Internal state
-  let layers: readonly ILayer[] = [];
-  let activeLayerId: string | null = null;
-  let showLayersModal = false;
-  let showBrushModal = false;
-  let showColorModal = false;
-  let penColor = initialPenColor;
-  let penSize = initialPenSize;
-  let currentTool: 'pen' | 'eraser' | 'fill' = initialTool;
-  let canUndo = false;
-  let canRedo = false;
-  let isFullscreen = false;
-  let mainElement: HTMLElement;
-  let canvasComponent: Canvas;
+  let layers = $state<readonly ILayer[]>([]);
+  let activeLayerId = $state<string | null>(null);
+  let showLayersModal = $state(false);
+  let showBrushModal = $state(false);
+  let showColorModal = $state(false);
+  let penColor = $state(initialPenColor);
+  let currentTool = $state<'pen' | 'eraser' | 'fill'>(initialTool);
+  let canUndo = $state(false);
+  let canRedo = $state(false);
+  let isFullscreen = $state(false);
+  let mainElement: HTMLElement; // Used with bind:this, not state
+  let canvasComponent: Canvas; // Used with bind:this, not state
 
   // Separate sizes for pen and eraser
-  let penBrushSize = initialPenSize;
-  let eraserSize = 20; // Default eraser size
+  let penBrushSize = $state(initialPenSize);
+  let eraserSize = $state(20); // Default eraser size
 
   // Event dispatcher for parent communication
   const dispatch = createEventDispatcher<{
@@ -53,13 +63,8 @@
     fullscreenToggle: boolean;
   }>();
 
-  // Reactive statements to sync props with internal state
-  $: penColor = initialPenColor;
-  $: penSize = initialPenSize;
-  $: currentTool = initialTool;
-
   // Update penSize based on current tool
-  $: penSize = currentTool === 'pen' ? penBrushSize : eraserSize;
+  const penSize = $derived(currentTool === 'pen' ? penBrushSize : eraserSize);
 
   // Event handlers from Canvas for state updates
   function handleLayersUpdate(event: CustomEvent<readonly ILayer[]>) {
@@ -83,10 +88,11 @@
     dispatch('toolChange', currentTool);
   }
   
-  function handleSetColor(color: string) {
-    penColor = color;
-    dispatch('colorChange', penColor);
-  }
+  // This function seems unused after refactor, color is bound or set by input
+  // function handleSetColor(color: string) {
+  //   penColor = color;
+  //   dispatch('colorChange', penColor);
+  // }
   
   function handleSetSize(event: CustomEvent<number>) {
     const size = event.detail;
@@ -95,14 +101,14 @@
     } else {
       eraserSize = size;
     }
-    penSize = size;
-    dispatch('sizeChange', penSize);
+    // penSize is derived, no need to set it here
+    dispatch('sizeChange', size);
   }
   
-  function handleUndo() {
+    function handleUndo() {
     canvasComponent?.undo();
   }
-  
+
   function handleRedo() {
     canvasComponent?.redo();
   }
@@ -179,70 +185,75 @@
     dispatch('fullscreenToggle', isFullscreen);
   }
 
-  // Public API methods
-  export function undo() {
-    canvasComponent?.undo();
-  }
-  
-  export function redo() {
-    canvasComponent?.redo();
-  }
-  
-  export function addLayer() {
-    canvasComponent?.addLayer();
-  }
-  
-  export function clearActiveLayer() {
-    canvasComponent?.clearActiveLayer();
-  }
-  
-  export async function exportToPNG() {
-    return await canvasComponent?.exportToPNG();
-  }
-  
-  export function getLayers() {
-    return layers;
-  }
-  
-  export function getActiveLayerId() {
-    return activeLayerId;
-  }
+  // Public API methods (exposed via $enhance)
+  // These are now part of the component's instance methods by default with runes
+  // No explicit export needed for parent calls if using bind:this and calling methods on the instance.
+  // However, if you need to expose them explicitly (e.g. for non-Svelte environments or specific patterns),
+  // you might need a different approach or rely on bind:this.
+  // For now, assuming standard Svelte component interaction.
 
-  // Handle tool button clicks - single click only to select tool
+  // Public API methods accessible via component instance
+  const public_api = {
+    undo: () => canvasComponent?.undo(),
+    redo: () => canvasComponent?.redo(),
+    addLayer: () => canvasComponent?.addLayer(),
+    clearActiveLayer: () => canvasComponent?.clearActiveLayer(),
+    exportToPNG: async () => await canvasComponent?.exportToPNG(),
+    getLayers: () => layers,
+    getActiveLayerId: () => activeLayerId,
+  }
+  $inspect(public_api); // Make methods available on component instance
+
+
+  // Handle tool button clicks
   function handleToolClick(tool: 'pen' | 'eraser' | 'fill') {
-    // If tapping the same tool that's already selected, show the brush modal
-    // (but only for tools that have meaningful options)
     if (currentTool === tool && (tool === 'pen' || tool === 'eraser')) {
       showBrushModal = true;
       return;
     }
-    
-    // Otherwise, select the tool
     currentTool = tool;
     dispatch('toolChange', currentTool);
   }
 
-  // Handle color picker click to open color modal
-  function handleColorClick() {
-    showColorModal = true;
-  }
+  // Handle color picker click to open color modal (if a separate button for modal is desired)
+  // function handleColorClick() {
+  //   showColorModal = true;
+  // }
 
   // Handle direct color input change
   function handleColorInput(event: Event) {
     const target = event.target as HTMLInputElement;
-    penColor = target.value;
+    penColor = target.value; // Direct assignment to $state variable
     dispatch('colorChange', penColor);
   }
 
-  onMount(() => {
-    if (enableFullscreen) {
-      document.addEventListener('fullscreenchange', onFullscreenChange);
-    }
+  $effect(() => {
+    // Sync initialPenColor prop changes to penColor state
+    penColor = initialPenColor;
   });
 
-  onDestroy(() => {
+  $effect(() => {
+    // Sync initialPenSize prop changes to penBrushSize state (assuming pen is the default context for initialPenSize)
+     if (currentTool === 'pen') {
+      penBrushSize = initialPenSize;
+    }
+    // If you want initialPenSize to also set eraserSize when eraser is the initial tool, add:
+    // else if (currentTool === 'eraser') {
+    //   eraserSize = initialPenSize;
+    // }
+  });
+
+  $effect(() => {
+    // Sync initialTool prop changes to currentTool state
+    currentTool = initialTool;
+  });
+
+  $effect(() => {
     if (enableFullscreen) {
-      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.addEventListener('fullscreenchange', onFullscreenChange);
+      return () => {
+        document.removeEventListener('fullscreenchange', onFullscreenChange);
+      };
     }
   });
 </script>
@@ -270,16 +281,16 @@
     />
   </div>
   <div class="toolbar">
-    <button on:click={() => showLayersModal = !showLayersModal} title="Layers">
+    <button onclick={() => showLayersModal = !showLayersModal} title="Layers">
       <Icon name="layers" size={20} />
     </button>
-    <button on:click={() => handleToolClick('pen')} title="Pen" class:active={currentTool === 'pen'}>
+    <button onclick={() => handleToolClick('pen')} title="Pen" class:active={currentTool === 'pen'}>
       <Icon name="brush" size={20} />
     </button>
-    <button on:click={() => handleToolClick('eraser')} title="Eraser" class:active={currentTool === 'eraser'}>
+    <button onclick={() => handleToolClick('eraser')} title="Eraser" class:active={currentTool === 'eraser'}>
       <Icon name="eraser" size={20} />
     </button>
-    <button on:click={() => handleToolClick('fill')} title="Fill Bucket" class:active={currentTool === 'fill'}>
+    <button onclick={() => handleToolClick('fill')} title="Fill Bucket" class:active={currentTool === 'fill'}>
       <Icon name="bucket" size={20} />
     </button>
     
@@ -287,24 +298,24 @@
     <input 
       type="color" 
       bind:value={penColor} 
-      on:input={handleColorInput}
+      oninput={handleColorInput}
       title="Color: {penColor}"
       class="color-picker-button"
     />
 
-    <button on:click={handleUndo} disabled={!canUndo} title="Undo">
+    <button onclick={handleUndo} disabled={!canUndo} title="Undo">
       <span style="display: inline-block; transform: rotate(180deg);">➦</span>
     </button>
-    <button on:click={handleRedo} disabled={!canRedo} title="Redo">➦</button>
+    <button onclick={handleRedo} disabled={!canRedo} title="Redo">➦</button>
 
     {#if enableDownload}  
-      <button on:click={handleExportPNG} title="Download">
+      <button onclick={handleExportPNG} title="Download">
         <Icon name="download" size={20} />
       </button>
     {/if}
 
     {#if enableFullscreen}
-      <button on:click={handleToggleFullscreen} title="Toggle Fullscreen">
+      <button onclick={handleToggleFullscreen} title="Toggle Fullscreen">
         <Icon name="fullscreen" size={20} />
       </button>
     {/if}
@@ -313,11 +324,11 @@
 
 
   {#if showLayersModal}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-    <div class="modal-overlay" on:click={() => showLayersModal = false} role="presentation">
-      <div class="modal-content layer-modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="layers-title" tabindex="0">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div class="modal-overlay" onclick={() => showLayersModal = false} role="presentation">
+      <div class="modal-content layer-modal-content" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="layers-title" tabindex="0">
         <LayerPanel
           layers={layers}
           activeLayerId={activeLayerId}
@@ -335,16 +346,15 @@
 
 
   {#if showColorModal}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-    <div class="modal-overlay" on:click={() => showColorModal = false} role="presentation">
-      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="color-modal-title" tabindex="0">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div class="modal-overlay" onclick={() => showColorModal = false} role="presentation">
+      <div class="modal-content" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="color-modal-title" tabindex="0">
         <ColorModal
-          bind:penColor={penColor}
-          on:setColor={() => {
-            /* penColor is already updated by the binding */
-            /* Dispatch the change for parent components if necessary */
+          penColor={penColor}
+          on:setColor={(e) => {
+            penColor = e.detail;
             dispatch('colorChange', penColor);
           }}
           on:close={() => showColorModal = false}
@@ -354,13 +364,13 @@
   {/if}
 
   {#if showBrushModal}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-    <div class="modal-overlay" on:click={() => showBrushModal = false} role="presentation">
-      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="brush-modal-title" tabindex="0">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div class="modal-overlay" onclick={() => showBrushModal = false} role="presentation">
+      <div class="modal-content" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="brush-modal-title" tabindex="0">
         <BrushModal
-          bind:penSize={penSize}
+          penSize={penSize}
           toolType={currentTool}
           on:setSize={handleSetSize}
           on:close={() => showBrushModal = false}

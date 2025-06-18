@@ -1,17 +1,18 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
 
-  export let penColor: string; // Bound two-way by Skvetchy
+  let { penColor } = $props<{
+    penColor: string;
+  }>();
 
   const dispatch = createEventDispatcher<{
     setColor: string; // Dispatched when color changes
     close: void;    // Dispatched to close the modal
   }>();
 
-  // This function will be called on input.
-  // penColor prop is already updated by bind:value on the input.
-  function handleInput() {
-    dispatch('setColor', penColor);
+  function handleInput(event: Event) {
+    const newColor = (event.target as HTMLInputElement).value;
+    dispatch('setColor', newColor);
   }
 </script>
 
@@ -21,12 +22,12 @@
     <input
       type="color"
       id="penColor"
-      bind:value={penColor}
-      on:input={handleInput}
+      value={penColor}
+      oninput={handleInput}
     />
     <span>{penColor}</span>
   </div>
-  <button on:click={() => dispatch('close')}>Close</button>
+  <button onclick={() => dispatch('close')}>Close</button>
 </div>
 
 <style>
