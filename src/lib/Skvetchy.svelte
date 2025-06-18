@@ -3,7 +3,6 @@
   import LayerPanel from './components/Layers/LayerPanel.svelte';
   import BrushModal from './components/Modals/BrushModal.svelte';
   import ColorModal from './components/Modals/ColorModal.svelte';
-  import ConfirmModal from './components/Modals/ConfirmModal.svelte';
   import Icon from './components/Icon.svelte';
   import type { ILayer } from './core/LayerManager';
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
@@ -17,6 +16,7 @@
   export let initialPenSize = 5;
   export let initialTool: 'pen' | 'eraser' = 'pen';
   export let enableFullscreen = false;
+  export let enableDownload = false;
   export let className = '';
   
   // Required image dimensions for export
@@ -29,7 +29,6 @@
   let showLayersModal = false;
   let showBrushModal = false;
   let showColorModal = false;
-  let showSaveConfirmModal = false;
   let penColor = initialPenColor;
   let penSize = initialPenSize;
   let currentTool: 'pen' | 'eraser' = initialTool;
@@ -288,9 +287,11 @@
     </button>
     <button on:click={handleRedo} disabled={!canRedo} title="Redo">➦</button>
 
-    <button on:click={() => showSaveConfirmModal = true} title="Submit">
-      <Icon name="check" size={20} />
-    </button>
+    {#if enableDownload}  
+      <button on:click={handleExportPNG} title="Download">
+        <Icon name="download" size={20} />
+      </button>
+    {/if}
 
     {#if enableFullscreen}
       <button on:click={handleToggleFullscreen} title="Toggle Fullscreen">
@@ -321,24 +322,7 @@
     </div>
   {/if}
 
-  {#if showSaveConfirmModal}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-    <div class="modal-overlay" on:click={() => showSaveConfirmModal = false} role="presentation">
-      <div class="modal-content" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="save-confirm-title" tabindex="0">
-        <ConfirmModal
-          title="Save Image"
-          message="Are you sure you want to save and download the image?"
-          on:confirm={() => {
-            handleExportPNG();
-            showSaveConfirmModal = false;
-          }}
-          on:cancel={() => showSaveConfirmModal = false}
-        />
-      </div>
-    </div>
-  {/if}
+
 
   {#if showColorModal}
     <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -406,22 +390,27 @@
   .toolbar {
     display: flex;
     justify-content: center;
-    align-items: center;
-    padding: 10px;
+    align-items: stretch;
+    padding: 5px;
+    gap: 4px;
     background-color: #f0f0f0;
     border-top: 1px solid #ccc;
   }
 
-  .toolbar button {
-    padding: 8px 12px;
+  .toolbar button, .color-picker-button  {
     font-size: 1.2em; /* For icon buttons, adjust as needed */
     background-color: #fff;
     border: 1px solid #ccc;
     border-radius: 4px;
     cursor: pointer;
-    margin: 0 5px;
+    height: auto;
     line-height: 1; /* Ensures icon is centered if it has descenders/ascenders */
   }
+
+  .toolbar button {
+   padding: 8px 12px;
+  }
+
   .toolbar button:hover:not(:disabled) {
     background-color: #e0e0e0;
     border-color: #bbb;
@@ -435,15 +424,14 @@
     font-weight: bold;
   }
 
-  .color-picker-button {
+  /* .color-picker-button {
     width: 40px !important;
     height: 40px !important;
     border: 1px solid #ccc !important;
     border-radius: 4px !important;
     cursor: pointer !important;
     padding: 0 !important;
-    margin: 0 5px !important;
-  }
+  } */
 
   .color-picker-button:hover {
     border-color: #bbb !important;

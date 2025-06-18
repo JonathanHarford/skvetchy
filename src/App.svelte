@@ -26,7 +26,8 @@
     initialPenColor="#ff0000"
     initialPenSize={8}
     initialTool="pen"
-    enableFullscreen={false}
+    enableFullscreen={true}
+    enableDownload={true}
     on:layersChange={handleLayersChange}
     on:export={handleExport}
     on:toolChange={handleToolChange}
