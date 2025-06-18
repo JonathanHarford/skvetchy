@@ -41,7 +41,7 @@ export class HistoryManager {
     this.undoStack.push(action);
     this.redoStack = [];
     // TODO: Emit event: historyChanged (e.g., to enable/disable undo/redo buttons)
-    console.log('History added:', action, this.undoStack.length);
+    // console.log('History added:', action, this.undoStack.length);
   }
 
   canUndo(): boolean {
