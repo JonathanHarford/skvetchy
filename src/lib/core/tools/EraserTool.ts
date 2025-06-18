@@ -22,7 +22,12 @@ export class EraserTool implements ITool {
     // globalCompositeOperation is set by activate method when tool is selected
     // activeLayer.context.globalCompositeOperation = 'destination-out'; // No longer needed here
 
-    const currentPressure = pressure || 1.0;
+    // Improved pressure handling with bounds checking and validation
+    let currentPressure = pressure || 1.0;
+    
+    // Clamp pressure to reasonable bounds (Apple Pencil can sometimes report values outside 0-1)
+    currentPressure = Math.max(0.1, Math.min(1.0, currentPressure));
+    
     this.lastPressure = currentPressure;
 
     activeLayer.context.beginPath();
@@ -38,7 +43,19 @@ export class EraserTool implements ITool {
   onPointerMove(event: PointerEvent, activeLayer: ILayer, _color: string, penSize: number, pressure?: number): void {
     if (!this.erasing) return;
 
-    const currentPressure = pressure || 1.0;
+    // Improved pressure handling with bounds checking and smoothing
+    let currentPressure = pressure || 1.0;
+    
+    // Clamp pressure to reasonable bounds
+    currentPressure = Math.max(0.1, Math.min(1.0, currentPressure));
+    
+    // Smooth pressure transitions to prevent jarring changes
+    // If pressure change is very large (>0.3), limit the change per frame
+    const pressureDiff = currentPressure - this.lastPressure;
+    if (Math.abs(pressureDiff) > 0.3) {
+      // Limit pressure change to prevent sudden jumps
+      currentPressure = this.lastPressure + (pressureDiff > 0 ? 0.3 : -0.3);
+    }
     
     // If pressure has changed significantly, start a new path segment
     if (Math.abs(currentPressure - this.lastPressure) > 0.05) {

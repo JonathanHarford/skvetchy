@@ -136,7 +136,21 @@
       // Capture state BEFORE drawing for undo
       imageDataBeforeStroke = captureCanvasState(activeLayer.canvas);
 
-      const pressure = event.pressure !== 0.5 ? event.pressure : undefined; // PointerEvent pressure defaults to 0.5 if not available
+      // Improved pressure detection for Apple Pencil and other pressure-sensitive devices
+      // Only treat pressure as unavailable if it's exactly 0.5 AND the device doesn't support pressure
+      // or if pressure is 0 (which typically indicates no pressure support)
+      let pressure: number | undefined;
+      if (event.pressure === 0) {
+        // Pressure is 0 - device likely doesn't support pressure
+        pressure = undefined;
+      } else if (event.pressure === 0.5 && event.pointerType !== 'pen') {
+        // Pressure is 0.5 and it's not a pen device - likely default value
+        pressure = undefined;
+      } else {
+        // Use the actual pressure value (including legitimate 0.5 values from Apple Pencil)
+        pressure = event.pressure;
+      }
+      
       currentToolInstance.onPointerDown(event, activeLayer, penColor, penSize, pressure);
       // No redraw here, actual drawing is on offscreen layer canvas
     }
@@ -146,7 +160,16 @@
     if (!currentToolInstance || !layerManager) return;
     const activeLayer = layerManager.getActiveLayer();
     if (activeLayer && event.target === displayCanvasElement && (event.buttons === 1 || event.pointerType === 'touch')) { // Check if primary button is pressed
-      const pressure = event.pressure !== 0.5 ? event.pressure : undefined;
+      // Apply the same improved pressure detection logic
+      let pressure: number | undefined;
+      if (event.pressure === 0) {
+        pressure = undefined;
+      } else if (event.pressure === 0.5 && event.pointerType !== 'pen') {
+        pressure = undefined;
+      } else {
+        pressure = event.pressure;
+      }
+      
       currentToolInstance.onPointerMove(event, activeLayer, penColor, penSize, pressure);
       requestRedraw();
     }

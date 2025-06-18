@@ -17,8 +17,9 @@
     "dist"
   ],
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build && npm run package",
+    "build:watch": "vite build --watch && npm run package",
     "build:pages": "vite build",
     "package": "svelte-package -o dist",
     "preview": "vite preview",

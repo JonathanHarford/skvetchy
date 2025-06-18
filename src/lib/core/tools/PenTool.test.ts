@@ -56,10 +56,11 @@ describe('PenTool', () => {
     expect(mockContext.stroke).toHaveBeenCalledTimes(1);
 
     // Move with significantly different pressure - should create new path segment
+    // Note: Due to pressure smoothing, jumping from 0.5 to 1.0 will be limited to 0.5 + 0.3 = 0.8
     penTool.onPointerMove(mockEvent3, mockLayer, '#000000', 10, 1.0);
     
     expect(mockContext.beginPath).toHaveBeenCalledTimes(2); // New path started
-    expect(mockContext.lineWidth).toBe(10); // 10 * 1.0
+    expect(mockContext.lineWidth).toBe(8); // 10 * 0.8 (smoothed from 0.5 to 0.8)
     expect(mockContext.moveTo).toHaveBeenCalledWith(20, 20); // Starts from last position
     expect(mockContext.lineTo).toHaveBeenCalledWith(30, 30);
     expect(mockContext.stroke).toHaveBeenCalledTimes(3); // Once to finish old path, once for new path
@@ -98,5 +99,41 @@ describe('PenTool', () => {
     penTool.onPointerDown(mockEvent, mockLayer, '#000000', 10);
     
     expect(mockContext.lineWidth).toBe(10); // 10 * 1.0 (default)
+  });
+
+  it('should clamp pressure values to reasonable bounds', () => {
+    const mockEvent1 = { button: 0, offsetX: 10, offsetY: 10 } as PointerEvent;
+    const mockEvent2 = { button: 0, offsetX: 20, offsetY: 20 } as PointerEvent;
+    const mockEvent3 = { button: 0, offsetX: 30, offsetY: 30 } as PointerEvent;
+
+    // Test pressure below minimum (should be clamped to 0.1)
+    penTool.onPointerDown(mockEvent1, mockLayer, '#000000', 10, 0.05);
+    expect(mockContext.lineWidth).toBe(1); // 10 * 0.1 (clamped minimum)
+
+    // Test pressure above maximum (should be clamped to 1.0)
+    penTool.onPointerUp(mockEvent1, mockLayer);
+    penTool.onPointerDown(mockEvent2, mockLayer, '#000000', 10, 1.5);
+    expect(mockContext.lineWidth).toBe(10); // 10 * 1.0 (clamped maximum)
+
+    // Test negative pressure (should be clamped to 0.1)
+    penTool.onPointerUp(mockEvent2, mockLayer);
+    penTool.onPointerDown(mockEvent3, mockLayer, '#000000', 10, -0.2);
+    expect(mockContext.lineWidth).toBe(1); // 10 * 0.1 (clamped minimum)
+  });
+
+  it('should smooth large pressure transitions to prevent glitches', () => {
+    const mockEvent1 = { button: 0, offsetX: 10, offsetY: 10 } as PointerEvent;
+    const mockEvent2 = { button: 0, offsetX: 20, offsetY: 20 } as PointerEvent;
+
+    // Start with low pressure
+    penTool.onPointerDown(mockEvent1, mockLayer, '#000000', 10, 0.2);
+    expect(mockContext.lineWidth).toBe(2); // 10 * 0.2
+
+    // Try to jump to very high pressure - should be limited
+    penTool.onPointerMove(mockEvent2, mockLayer, '#000000', 10, 1.0);
+    
+    // The pressure change should be limited to 0.3 per frame
+    // So from 0.2, it should go to 0.5 (0.2 + 0.3)
+    expect(mockContext.lineWidth).toBe(5); // 10 * 0.5 (smoothed)
   });
 }); 
