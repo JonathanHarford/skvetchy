@@ -29,7 +29,6 @@
   let showLayersModal = false;
   let showBrushModal = false;
   let showColorModal = false;
-  let brushModalTool: 'pen' | 'eraser' = 'pen'; // Track which tool the brush modal is for
   let showSaveConfirmModal = false;
   let penColor = initialPenColor;
   let penSize = initialPenSize;
@@ -43,9 +42,6 @@
   // Separate sizes for pen and eraser
   let penBrushSize = initialPenSize;
   let eraserSize = 20; // Default eraser size
-  
-  // Track which tool was last clicked for second-tap detection
-  let lastClickedTool: 'pen' | 'eraser' | null = null;
 
   // Event dispatcher for parent communication
   const dispatch = createEventDispatcher<{
@@ -213,18 +209,11 @@
     return activeLayerId;
   }
 
-  // Handle tool button clicks - first click selects, second click opens size modal
+  // Handle tool button clicks - single click only to select tool
   function handleToolClick(tool: 'pen' | 'eraser') {
-    if (currentTool === tool && lastClickedTool === tool) {
-      // Second tap on already active tool - open size modal
-      brushModalTool = tool;
-      showBrushModal = true;
-    } else {
-      // First tap or switching tools - select tool
-      currentTool = tool;
-      dispatch('toolChange', currentTool);
-    }
-    lastClickedTool = tool;
+    // Single tap to select tool (double-tap functionality disabled)
+    currentTool = tool;
+    dispatch('toolChange', currentTool);
   }
 
   // Handle color picker click to open color modal
@@ -304,9 +293,9 @@
     </button>
 
     {#if enableFullscreen}
-    <button on:click={handleToggleFullscreen} title="Toggle Fullscreen">
-      <Icon name="fullscreen" size={20} />
-    </button>
+      <button on:click={handleToggleFullscreen} title="Toggle Fullscreen">
+        <Icon name="fullscreen" size={20} />
+      </button>
     {/if}
   </div>
 
@@ -392,6 +381,13 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    /* Disable double-tap zoom and other double-tap behaviors */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
   
   .canvas-wrapper {

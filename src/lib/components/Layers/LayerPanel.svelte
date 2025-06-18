@@ -144,7 +144,7 @@
             class="rename-input"
           />
         {:else}
-          <span class="layer-name" on:dblclick={() => startEditing(layer)} role="button" tabindex="0" on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') startEditing(layer); }}>
+          <span class="layer-name" role="button" tabindex="0" on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') startEditing(layer); }}>
             {layer.name}
           </span>
         {/if}
