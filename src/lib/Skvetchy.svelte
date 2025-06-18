@@ -470,7 +470,7 @@
   }
 
   .modal-overlay {
-    position: fixed; /* Use fixed to cover the whole viewport */
+    position: absolute; /* Position relative to the component container */
     top: 0;
     left: 0;
     width: 100%;
