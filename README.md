@@ -54,7 +54,7 @@ npm install skvetchy
 | `imageWidth` | `number` | **Required** | Width of the exported PNG image (also defines viewport aspect ratio) |
 | `imageHeight` | `number` | **Required** | Height of the exported PNG image (also defines viewport aspect ratio) |
 | `backgroundColor` | `string` | `'#333'` | Background color of the component |
-| `showToolbar` | `boolean` | `true` | Whether to show the toolbar |
+
 | `showLayerPanel` | `boolean` | `true` | Whether to show the layer panel |
 | `initialPenColor` | `string` | `'#000000'` | Initial pen color |
 | `initialPenSize` | `number` | `5` | Initial pen size |
@@ -139,7 +139,7 @@ If you want to build your own UI, you can import individual components:
 
 ```svelte
 <script>
-  import { Canvas, Toolbar, LayerPanel } from 'skvetchy';
+  import { Canvas, LayerPanel } from 'skvetchy';
   // Build your own layout with these components
 </script>
 ```

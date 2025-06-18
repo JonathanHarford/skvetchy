@@ -23,7 +23,6 @@
     imageWidth={1920}
     imageHeight={1080}
     backgroundColor="#333"
-    showToolbar={false}
     initialPenColor="#ff0000"
     initialPenSize={8}
     initialTool="pen"

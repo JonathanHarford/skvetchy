@@ -1,6 +1,5 @@
 <script lang="ts">
   import Canvas from './components/Canvas/Canvas.svelte';
-  import Toolbar from './components/Toolbar/Toolbar.svelte';
   import LayerPanel from './components/Layers/LayerPanel.svelte';
   import BrushModal from './components/Modals/BrushModal.svelte';
   import ColorModal from './components/Modals/ColorModal.svelte';
@@ -13,7 +12,7 @@
   export let width: string | number = '100%';
   export let height: string | number = '100%';
   export let backgroundColor = '#333';
-  export let showToolbar = true;
+
   export let initialPenColor = '#000000';
   export let initialPenSize = 5;
   export let initialTool: 'pen' | 'eraser' = 'pen';
@@ -83,24 +82,25 @@
     canRedo = event.detail.canRedo;
   }
 
-  // Toolbar event handlers
-  function handleSetTool(event: CustomEvent<'pen' | 'eraser'>) {
-    currentTool = event.detail;
+  // Tool event handlers
+  function handleSetTool(tool: 'pen' | 'eraser') {
+    currentTool = tool;
     dispatch('toolChange', currentTool);
   }
   
-  function handleSetColor(event: CustomEvent<string>) {
-    penColor = event.detail;
+  function handleSetColor(color: string) {
+    penColor = color;
     dispatch('colorChange', penColor);
   }
   
   function handleSetSize(event: CustomEvent<number>) {
+    const size = event.detail;
     if (currentTool === 'pen') {
-      penBrushSize = event.detail;
+      penBrushSize = size;
     } else {
-      eraserSize = event.detail;
+      eraserSize = size;
     }
-    penSize = event.detail;
+    penSize = size;
     dispatch('sizeChange', penSize);
   }
   
@@ -257,25 +257,7 @@
   class="sketchy-drawing {className}"
   style="width: {typeof width === 'number' ? width + 'px' : width}; height: {typeof height === 'number' ? height + 'px' : height}; background-color: {backgroundColor};"
 >
-  {#if showToolbar}
-    <Toolbar
-      bind:penColor={penColor}
-      bind:penSize={penSize}
-      bind:currentTool={currentTool}
-      canUndo={canUndo}
-      canRedo={canRedo}
-      isFullscreen={isFullscreen}
-      on:setTool={handleSetTool}
-      on:setColor={handleSetColor}
-      on:setSize={handleSetSize}
-      on:undo={handleUndo}
-      on:redo={handleRedo}
-      on:addLayer={handleAddLayer}
-      on:clearActiveLayer={handleClearActiveLayer}
-      on:toggleFullscreen={handleToggleFullscreen}
-      on:exportPNG={handleExportPNG}
-    />
-  {/if}
+
   
   <div class="canvas-wrapper" style="--aspect-ratio: {imageWidth / imageHeight};">
     <Canvas
@@ -292,7 +274,7 @@
       activeLayerId={activeLayerId}
     />
   </div>
-  <div class="bottom-toolbar">
+  <div class="toolbar">
     <button on:click={() => showLayersModal = !showLayersModal} title="Layers">
       <Icon name="layers" size={20} />
     </button>
@@ -423,7 +405,7 @@
     align-items: center;
   }
   
-  .bottom-toolbar {
+  .toolbar {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -432,7 +414,7 @@
     border-top: 1px solid #ccc;
   }
 
-  .bottom-toolbar button {
+  .toolbar button {
     padding: 8px 12px;
     font-size: 1.2em; /* For icon buttons, adjust as needed */
     background-color: #fff;
@@ -442,15 +424,15 @@
     margin: 0 5px;
     line-height: 1; /* Ensures icon is centered if it has descenders/ascenders */
   }
-  .bottom-toolbar button:hover:not(:disabled) {
+  .toolbar button:hover:not(:disabled) {
     background-color: #e0e0e0;
     border-color: #bbb;
   }
-  .bottom-toolbar button:disabled {
+  .toolbar button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-  .bottom-toolbar button.active {
+  .toolbar button.active {
     background-color: #a0a0ff;
     font-weight: bold;
   }

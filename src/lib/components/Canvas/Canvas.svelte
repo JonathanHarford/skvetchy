@@ -11,7 +11,7 @@
   export let penSize = 5;
   export let layers: readonly ILayer[] = []; // Bound from App, updated via dispatch
   export let activeLayerId: string | null = null; // Bound from App, updated via dispatch
-  export let currentToolType: 'pen' | 'eraser' = 'pen'; // Controlled by Toolbar via App.svelte
+  export let currentToolType: 'pen' | 'eraser' = 'pen'; // Controlled by parent component
   
   // Image export dimensions
   export let imageWidth: number;
@@ -21,7 +21,7 @@
   const dispatch = createEventDispatcher<{
     layersupdate: readonly ILayer[];
     activeidupdate: string | null;
-    historychange: { canUndo: boolean, canRedo: boolean }; // For toolbar buttons
+    historychange: { canUndo: boolean, canRedo: boolean }; // For undo/redo buttons
   }>();
 
   let containerElement: HTMLDivElement;
