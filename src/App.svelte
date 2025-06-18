@@ -12,7 +12,7 @@
     console.log('Image exported:', event.detail);
   }
 
-  function handleToolChange(event: CustomEvent<'pen' | 'eraser'>) {
+  function handleToolChange(event: CustomEvent<'pen' | 'eraser' | 'fill'>) {
     console.log('Tool changed to:', event.detail);
   }
 </script>

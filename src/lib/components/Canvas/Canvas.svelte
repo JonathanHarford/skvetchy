@@ -3,6 +3,7 @@
   import { LayerManager, type ILayer } from '../../core/LayerManager';
   import { PenTool } from '../../core/tools/PenTool';
   import { EraserTool } from '../../core/tools/EraserTool';
+  import { FillBucketTool } from '../../core/tools/FillBucketTool';
   import type { ITool } from '../../core/tools/ITool';
   import { HistoryManager, type IHistoryAction, captureCanvasState, type ActionType } from '../../core/HistoryManager';
 
@@ -11,7 +12,7 @@
   export let penSize = 5;
   export let layers: readonly ILayer[] = []; // Bound from App, updated via dispatch
   export let activeLayerId: string | null = null; // Bound from App, updated via dispatch
-  export let currentToolType: 'pen' | 'eraser' = 'pen'; // Controlled by parent component
+  export let currentToolType: 'pen' | 'eraser' | 'fill' = 'pen'; // Controlled by parent component
   
   // Image export dimensions
   export let imageWidth: number;
@@ -38,12 +39,13 @@
   let currentToolInstance: ITool;
   let penTool: PenTool;
   let eraserTool: EraserTool;
+  let fillBucketTool: FillBucketTool;
 
   // For capturing state before a stroke
   let imageDataBeforeStroke: string | undefined = undefined;
 
   // Reactive update when tool type changes
-  $: if (penTool && eraserTool && layerManager?.getActiveLayer()?.context) {
+  $: if (penTool && eraserTool && fillBucketTool && layerManager?.getActiveLayer()?.context) {
     const activeCtx = layerManager.getActiveLayer()?.context;
     if (currentToolInstance?.deactivate && activeCtx) currentToolInstance.deactivate(activeCtx);
 
@@ -51,6 +53,8 @@
       currentToolInstance = penTool;
     } else if (currentToolType === 'eraser') {
       currentToolInstance = eraserTool;
+    } else if (currentToolType === 'fill') {
+      currentToolInstance = fillBucketTool;
     }
     if (currentToolInstance?.activate && activeCtx) currentToolInstance.activate(activeCtx);
     requestRedraw(); // Redraw if tool change affects appearance (e.g. cursor, though not implemented yet)
@@ -78,6 +82,7 @@
     historyManager = new HistoryManager();
     penTool = new PenTool();
     eraserTool = new EraserTool();
+    fillBucketTool = new FillBucketTool();
     currentToolInstance = penTool;
 
     const activeCtx = layerManager.getActiveLayer()?.context;
@@ -422,12 +427,13 @@ export function renameLayer(layerId: string, newName: string) {
     }
   }
   // Make currentToolType reactive from props for App.svelte to control
-  $: if(currentToolType && penTool && eraserTool) { // Check if tools are initialized
+  $: if(currentToolType && penTool && eraserTool && fillBucketTool) { // Check if tools are initialized
     const activeCtx = layerManager?.getActiveLayer()?.context;
     if (currentToolInstance?.deactivate && activeCtx) currentToolInstance.deactivate(activeCtx);
 
     if (currentToolType === 'pen') currentToolInstance = penTool;
     else if (currentToolType === 'eraser') currentToolInstance = eraserTool;
+    else if (currentToolType === 'fill') currentToolInstance = fillBucketTool;
 
     if (currentToolInstance?.activate && activeCtx) currentToolInstance.activate(activeCtx);
   }

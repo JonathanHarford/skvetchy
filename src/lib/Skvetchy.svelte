@@ -14,7 +14,7 @@
 
   export let initialPenColor = '#000000';
   export let initialPenSize = 5;
-  export let initialTool: 'pen' | 'eraser' = 'pen';
+  export let initialTool: 'pen' | 'eraser' | 'fill' = 'pen';
   export let enableFullscreen = false;
   export let enableDownload = false;
   export let className = '';
@@ -31,7 +31,7 @@
   let showColorModal = false;
   let penColor = initialPenColor;
   let penSize = initialPenSize;
-  let currentTool: 'pen' | 'eraser' = initialTool;
+  let currentTool: 'pen' | 'eraser' | 'fill' = initialTool;
   let canUndo = false;
   let canRedo = false;
   let isFullscreen = false;
@@ -46,7 +46,7 @@
   const dispatch = createEventDispatcher<{
     layersChange: readonly ILayer[];
     activeLayerChange: string | null;
-    toolChange: 'pen' | 'eraser';
+    toolChange: 'pen' | 'eraser' | 'fill';
     colorChange: string;
     sizeChange: number;
     export: File;
@@ -78,7 +78,7 @@
   }
 
   // Tool event handlers
-  function handleSetTool(tool: 'pen' | 'eraser') {
+  function handleSetTool(tool: 'pen' | 'eraser' | 'fill') {
     currentTool = tool;
     dispatch('toolChange', currentTool);
   }
@@ -209,9 +209,10 @@
   }
 
   // Handle tool button clicks - single click only to select tool
-  function handleToolClick(tool: 'pen' | 'eraser') {
+  function handleToolClick(tool: 'pen' | 'eraser' | 'fill') {
     // If tapping the same tool that's already selected, show the brush modal
-    if (currentTool === tool) {
+    // (but only for tools that have meaningful options)
+    if (currentTool === tool && (tool === 'pen' || tool === 'eraser')) {
       showBrushModal = true;
       return;
     }
@@ -277,6 +278,9 @@
     </button>
     <button on:click={() => handleToolClick('eraser')} title="Eraser" class:active={currentTool === 'eraser'}>
       <Icon name="eraser" size={20} />
+    </button>
+    <button on:click={() => handleToolClick('fill')} title="Fill Bucket" class:active={currentTool === 'fill'}>
+      <Icon name="bucket" size={20} />
     </button>
     
     <!-- Direct color picker button -->
