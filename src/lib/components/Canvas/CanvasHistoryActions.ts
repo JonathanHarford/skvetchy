@@ -1,5 +1,6 @@
 import type { IHistoryAction } from '../../core/HistoryManager';
 import type { LayerManager } from '../../core/LayerManager';
+import { clearCanvas } from '../../core/CanvasUtils';
 
 export interface HistoryActionContext {
   layerManager: LayerManager | null;
@@ -64,7 +65,7 @@ export class CanvasHistoryActions {
       if (imageDataToRestore) {
         const img = new Image();
         img.onload = () => {
-          layerToActOn.context.clearRect(0, 0, layerToActOn.canvas.width, layerToActOn.canvas.height);
+          clearCanvas(layerToActOn.canvas, layerToActOn.context);
           layerToActOn.context.drawImage(img, 0, 0);
           requestRedraw();
         };

@@ -6,14 +6,23 @@
   import { FillBucketTool } from '../../core/tools/FillBucketTool';
   import type { ITool } from '../../core/tools/ITool';
   import { HistoryManager, type IHistoryAction, captureCanvasState } from '../../core/HistoryManager';
+  import { CanvasHistoryActions, type HistoryActionContext } from './CanvasHistoryActions';
+  import { CanvasEventHandlers, type CanvasEventHandlerContext } from './CanvasEventHandlers';
+  import { 
+    createExportCanvas, 
+    createLayerBackup, 
+    clearCanvas, 
+    canvasToFile,
+    type CanvasSize 
+  } from '../../core/CanvasUtils';
 
-  // Props
+  // Props - use directly without internal copies
   let {
-    penColor: initialPenColor = '#000000', // Renamed to avoid conflict if penColor becomes $state
-    penSize: initialPenSize = 5,         // Renamed
-    layers: initialLayers = [],
-    activeLayerId: initialActiveLayerId = null,
-    currentToolType: initialCurrentToolType = 'pen',
+    penColor = '#000000',
+    penSize = 5,
+    layers = [],
+    activeLayerId = null,
+    currentToolType = 'pen',
     imageWidth,
     imageHeight,
     onlayersupdate,
@@ -32,7 +41,7 @@
     onhistorychange?: (state: { canUndo: boolean, canRedo: boolean }) => void;
   }>();
 
-  // Internal State
+  // Internal State - only what's truly internal to the component
   let displayCanvasElement = $state<HTMLCanvasElement | null>(null);
   let containerElement = $state<HTMLDivElement | null>(null);
   let displayCtx = $state<CanvasRenderingContext2D | null>(null);
@@ -50,55 +59,31 @@
 
   let imageDataBeforeStroke = $state<string | undefined>(undefined);
 
-  // Component's own reactive state, initialized by props
-  // These props are passed down from Skvetchy.svelte which also holds them as $state
-  // This component will receive new values if they change in Skvetchy.svelte
-  // For layers and activeLayerId, this component dispatches events when they change
-  // internally, and Skvetchy.svelte updates its state, which then flows back down.
-  // So, direct assignment from props here is correct for initial values and prop updates.
-  let penColor = $state(initialPenColor);
-  let penSize = $state(initialPenSize);
-  let currentToolType = $state(initialCurrentToolType); // Internal reactive copy of the prop
-  // 'layers' and 'activeLayerId' are primarily managed by LayerManager and updated via events.
-  // They are passed as props for initial setup and potentially if parent forces a state.
+  // Handler classes
+  let canvasHistoryActions = $state<CanvasHistoryActions | null>(null);
+  let canvasEventHandlers = $state<CanvasEventHandlers | null>(null);
 
-  // Prop synchronization effects
-  $effect(() => {
-    penColor = initialPenColor;
-  });
-
-  $effect(() => {
-    penSize = initialPenSize;
-  });
-
-  $effect(() => {
-    // This effect handles changes to the initialCurrentToolType prop
-    // and updates the internal currentToolType state.
-    currentToolType = initialCurrentToolType;
-  });
-
-  // Tool Switching Effect
+  // Tool Switching Effect - simplified to use currentToolType prop directly
   $effect(() => {
     const lm = layerManager;
     const pt = penTool;
     const et = eraserTool;
     const fbt = fillBucketTool;
-    const toolType = currentToolType; // Use the internal $state variable for reactivity
 
     if (pt && et && fbt && lm?.getActiveLayer()?.context) {
-      const activeCtx = lm.getActiveLayer()!.context; // Not null due to check
+      const activeCtx = lm.getActiveLayer()!.context;
       let cti = currentToolInstance;
 
       if (cti?.deactivate && activeCtx) cti.deactivate(activeCtx);
 
-      if (toolType === 'pen') {
+      if (currentToolType === 'pen') {
         currentToolInstance = pt;
-      } else if (toolType === 'eraser') {
+      } else if (currentToolType === 'eraser') {
         currentToolInstance = et;
-      } else if (toolType === 'fill') {
+      } else if (currentToolType === 'fill') {
         currentToolInstance = fbt;
       }
-      // Re-assign to cti to ensure we use the updated instance for activate
+      
       cti = currentToolInstance;
       if (cti?.activate && activeCtx) cti.activate(activeCtx);
       requestRedraw();
@@ -118,6 +103,41 @@
     }
   }
 
+  function requestRedraw() {
+    requestAnimationFrame(drawLayers);
+  }
+
+  // Update handler contexts when dependencies change
+  $effect(() => {
+    if (canvasHistoryActions) {
+      const historyContext: HistoryActionContext = {
+        layerManager,
+        width,
+        height,
+        requestRedraw,
+        updateExternalState
+      };
+      canvasHistoryActions.updateContext(historyContext);
+    }
+  });
+
+  $effect(() => {
+    if (canvasEventHandlers) {
+      const eventContext: CanvasEventHandlerContext = {
+        currentToolInstance,
+        layerManager,
+        historyManager,
+        penColor,
+        penSize,
+        displayCanvasElement,
+        imageDataBeforeStroke,
+        requestRedraw,
+        updateExternalState
+      };
+      canvasEventHandlers.updateContext(eventContext);
+    }
+  });
+
   async function initializeCanvas() {
     await tick();
     const currentDisplayCanvasElement = displayCanvasElement;
@@ -132,6 +152,29 @@
     penTool = new PenTool();
     eraserTool = new EraserTool();
     fillBucketTool = new FillBucketTool();
+
+    // Initialize handler classes
+    const historyContext: HistoryActionContext = {
+      layerManager,
+      width,
+      height,
+      requestRedraw,
+      updateExternalState
+    };
+    canvasHistoryActions = new CanvasHistoryActions(historyContext);
+
+    const eventContext: CanvasEventHandlerContext = {
+      currentToolInstance,
+      layerManager,
+      historyManager,
+      penColor,
+      penSize,
+      displayCanvasElement,
+      imageDataBeforeStroke,
+      requestRedraw,
+      updateExternalState
+    };
+    canvasEventHandlers = new CanvasEventHandlers(eventContext);
 
     // Set initial tool based on the currentToolType state
     if (currentToolType === 'pen') currentToolInstance = penTool;
@@ -224,10 +267,6 @@
     }
   });
 
-  function requestRedraw() {
-    requestAnimationFrame(drawLayers);
-  }
-
   function drawLayers() {
     const currentDisplayCtx = displayCtx;
     const lm = layerManager;
@@ -240,130 +279,31 @@
   }
 
   function handlePointerDown(event: PointerEvent) {
-    const cti = currentToolInstance;
-    const lm = layerManager;
-    if (!cti || !lm) return;
-
-    const activeLayer = lm.getActiveLayer();
-    if (activeLayer && event.target === displayCanvasElement) {
-      imageDataBeforeStroke = captureCanvasState(activeLayer.canvas);
-      let pressure: number | undefined;
-      if (event.pressure === 0) pressure = undefined;
-      else if (event.pressure === 0.5 && event.pointerType !== 'pen') pressure = undefined;
-      else pressure = event.pressure;
-      
-      cti.onPointerDown(event, activeLayer, penColor, penSize, pressure);
+    if (canvasEventHandlers) {
+      const capturedImageData = canvasEventHandlers.handlePointerDown(event);
+      if (capturedImageData !== undefined) {
+        imageDataBeforeStroke = capturedImageData;
+      }
     }
   }
 
   function handlePointerMove(event: PointerEvent) {
-    const cti = currentToolInstance;
-    const lm = layerManager;
-    if (!cti || !lm) return;
-
-    const activeLayer = lm.getActiveLayer();
-    if (activeLayer && event.target === displayCanvasElement && (event.buttons === 1 || event.pointerType === 'touch')) {
-      let pressure: number | undefined;
-      if (event.pressure === 0) pressure = undefined;
-      else if (event.pressure === 0.5 && event.pointerType !== 'pen') pressure = undefined;
-      else pressure = event.pressure;
-      
-      cti.onPointerMove(event, activeLayer, penColor, penSize, pressure);
-      requestRedraw();
+    if (canvasEventHandlers) {
+      canvasEventHandlers.handlePointerMove(event);
     }
   }
 
   function handlePointerUp(event: PointerEvent) {
-    const cti = currentToolInstance;
-    const lm = layerManager;
-    const hm = historyManager;
-    if (!cti || !lm || !hm) return;
-
-    const activeLayer = lm.getActiveLayer();
-    const ibs = imageDataBeforeStroke; // Use local copy of $state variable
-
-    if (activeLayer && event.target === displayCanvasElement && ibs) {
-      cti.onPointerUp(event, activeLayer);
-      const imageDataAfterStroke = captureCanvasState(activeLayer.canvas);
-      if (ibs !== imageDataAfterStroke) {
-        hm.addHistory({
-          type: 'stroke',
-          layerId: activeLayer.id,
-          imageDataBefore: ibs,
-          imageDataAfter: imageDataAfterStroke,
-        });
-        updateExternalState();
-      }
-      imageDataBeforeStroke = undefined;
-      requestRedraw();
-    } else if (ibs) {
+    if (canvasEventHandlers) {
+      canvasEventHandlers.handlePointerUp(event, imageDataBeforeStroke);
       imageDataBeforeStroke = undefined;
     }
   }
 
   function applyHistoryAction(action: IHistoryAction, isUndo: boolean): void {
-    const lm = layerManager;
-    if(!lm) return;
-    const layerToActOn = lm.getLayers().find(l => l.id === action.layerId);
-
-    if (!layerToActOn && action.type !== 'addLayer' && action.type !== 'deleteLayer' && action.type !== 'reorderLayer') {
-        console.warn('Layer not found for history action:', action);
-        return;
+    if (canvasHistoryActions) {
+      canvasHistoryActions.applyHistoryAction(action, isUndo);
     }
-
-    switch (action.type) {
-      case 'stroke':
-      case 'clearLayer':
-        if (layerToActOn) {
-          const imageDataToRestore = isUndo ? action.imageDataBefore : action.imageDataAfter;
-          if (imageDataToRestore) {
-            const img = new Image();
-            img.onload = () => {
-              layerToActOn.context.clearRect(0, 0, layerToActOn.canvas.width, layerToActOn.canvas.height);
-              layerToActOn.context.drawImage(img, 0, 0);
-              requestRedraw();
-            };
-            img.src = imageDataToRestore;
-          }
-        }
-        break;
-      case 'addLayer':
-        if (isUndo) {
-            if (action.layerId) lm.deleteLayer(action.layerId);
-        } else {
-            lm.addLayer(undefined, width, height);
-        }
-        break;
-      case 'deleteLayer':
-        if (isUndo) {
-            if (action.deletedLayerData) {
-                lm.addLayerWithData(action.deletedLayerData, action.deletedLayerIndex);
-            }
-        } else {
-            if (action.layerId) lm.deleteLayer(action.layerId);
-        }
-        break;
-      case 'toggleLayerVisibility':
-        if (layerToActOn && action.visibilityBefore !== undefined) { // Ensure visibilityBefore is defined
-            layerToActOn.isVisible = isUndo ? action.visibilityBefore : !action.visibilityBefore;
-        }
-        break;
-      case 'reorderLayer':
-        if (action.meta && action.meta.targetLayerId && action.meta.oldVisualIndex !== undefined && action.meta.newVisualIndex !== undefined) {
-            const targetId = action.meta.targetLayerId as string;
-            const newIndex = (isUndo ? action.meta.oldVisualIndex : action.meta.newVisualIndex) as number;
-            lm.reorderLayer(targetId, newIndex);
-        }
-        break;
-      case 'renameLayer':
-        if (layerToActOn && action.meta && action.meta.oldName !== undefined && action.meta.newName !== undefined) {
-            const nameToSet = (isUndo ? action.meta.oldName : action.meta.newName) as string;
-            layerToActOn.name = nameToSet;
-        }
-        break;
-    }
-    updateExternalState(false);
-    requestRedraw();
   }
 
   // --- Public API methods will be exported below ---
@@ -374,32 +314,23 @@
       console.error("Cannot export: LayerManager not ready, canvas dimensions are zero, or image dimensions not specified.");
       return null;
     }
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = imageWidth;
-    tempCanvas.height = imageHeight;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (!tempCtx) {
-      console.error("Failed to get context for temporary export canvas.");
+
+    try {
+      const visibleLayers = lm.getLayers().filter(l => l.isVisible);
+      const currentSize: CanvasSize = { width, height };
+      const exportSize: CanvasSize = { width: imageWidth, height: imageHeight };
+      
+      const { canvas: exportCanvas } = createExportCanvas(
+        visibleLayers.map(l => l.canvas),
+        currentSize,
+        exportSize
+      );
+      
+      return await canvasToFile(exportCanvas, "skvetchy-drawing.png");
+    } catch (error) {
+      console.error("Failed to export PNG:", error);
       return null;
     }
-    const scaleX = imageWidth / width;
-    const scaleY = imageHeight / height;
-    tempCtx.scale(scaleX, scaleY);
-    const visibleLayers = lm.getLayers().filter(l => l.isVisible);
-    for (const layer of visibleLayers) {
-      tempCtx.drawImage(layer.canvas, 0, 0);
-    }
-    return new Promise((resolve) => {
-      tempCanvas.toBlob((blob) => {
-        if (blob) {
-          const file = new File([blob], "skvetchy-drawing.png", { type: "image/png" });
-          resolve(file);
-        } else {
-          console.error("Failed to create blob for PNG export.");
-          resolve(null);
-        }
-      }, 'image/png');
-    });
   }
 
   // Svelte 5 method exposure - export functions to make them available on component instance
@@ -434,7 +365,7 @@
     const activeLayer = lm.getActiveLayer();
     if (activeLayer) {
       const beforeState = captureCanvasState(activeLayer.canvas);
-      activeLayer.context.clearRect(0, 0, activeLayer.canvas.width, activeLayer.canvas.height);
+      clearCanvas(activeLayer.canvas, activeLayer.context);
       const afterState = captureCanvasState(activeLayer.canvas); // Should be empty
       hm.addHistory({
         type: 'clearLayer',
@@ -469,16 +400,11 @@
     const layerIndex = lm.getLayers().findIndex(l => l.id === id);
 
     if (layerToDelete) {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = layerToDelete.canvas.width;
-        tempCanvas.height = layerToDelete.canvas.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (tempCtx) tempCtx.drawImage(layerToDelete.canvas, 0, 0);
-
+        const backup = createLayerBackup(layerToDelete.canvas);
         const deletedLayerDataClone = {
             ...layerToDelete,
-            canvas: tempCanvas,
-            context: tempCtx!, // We know it's not null because we used it to draw
+            canvas: backup.canvas,
+            context: backup.context,
         };
         hm.addHistory({
             type: 'deleteLayer',

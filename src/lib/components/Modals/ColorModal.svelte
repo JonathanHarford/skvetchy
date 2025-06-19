@@ -1,9 +1,13 @@
 <script lang="ts">
+  import BaseModal from './BaseModal.svelte';
+
   let { 
+    show = false,
     penColor,
     onsetcolor,
     onclose
   } = $props<{
+    show?: boolean;
     penColor: string;
     onsetcolor: (color: string) => void;
     onclose: () => void;
@@ -15,26 +19,21 @@
   }
 </script>
 
-<div class="color-modal-container">
-  <h4>Pen Color</h4>
-  <div class="color-controls">
-    <input
-      type="color"
-      id="penColor"
-      value={penColor}
-      oninput={handleInput}
-    />
-    <span>{penColor}</span>
-  </div>
-  <button onclick={onclose}>Close</button>
-</div>
+<BaseModal {show} title="Pen Color" {onclose}>
+  {#snippet children()}
+    <div class="color-controls">
+      <input
+        type="color"
+        id="penColor"
+        value={penColor}
+        oninput={handleInput}
+      />
+      <span>{penColor}</span>
+    </div>
+  {/snippet}
+</BaseModal>
 
 <style>
-  .color-modal-container {
-    padding: 20px;
-    text-align: center;
-    color: #333; /* Ensure text is visible */
-  }
   .color-controls {
     display: flex;
     align-items: center;
@@ -42,29 +41,15 @@
     gap: 10px;
     margin: 20px 0;
   }
+  
   input[type="color"] {
-    width: 100px; /* Adjust as needed */
-    height: 40px; /* Adjust as needed */
+    width: 100px;
+    height: 40px;
     border: 1px solid #ccc;
-    padding: 0; /* Remove default padding for color input */
+    padding: 0;
   }
+  
   span {
-    font-family: monospace; /* For better display of hex code */
-  }
-  h4 {
-    margin-top: 0;
-    margin-bottom: 15px;
-  }
-  button {
-    padding: 8px 16px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-  }
-  button:hover {
-    background-color: #0056b3;
+    font-family: monospace;
   }
 </style>

@@ -1,3 +1,10 @@
+import { 
+  createTempCanvas, 
+  createTempCanvasFromSource, 
+  resizeCanvasWithContent,
+  type CanvasSize 
+} from './CanvasUtils';
+
 export interface ILayer {
   id: string;
   name: string;
@@ -17,13 +24,7 @@ export class LayerManager {
   }
 
   private createLayer(name: string, width: number, height: number, zIndex: number): ILayer {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) {
-      throw new Error('Failed to get 2D context for layer');
-    }
+    const { canvas, context } = createTempCanvas(width, height);
     return {
       id: `layer-${this.nextLayerId++}`,
       name,
@@ -128,25 +129,9 @@ export class LayerManager {
   }
 
   resizeLayers(width: number, height: number): void {
+    const newSize: CanvasSize = { width, height };
     this.layers.forEach(layer => {
-      // Preserve existing content
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = layer.canvas.width;
-      tempCanvas.height = layer.canvas.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (tempCtx) {
-          tempCtx.drawImage(layer.canvas, 0, 0);
-      }
-
-      layer.canvas.width = width;
-      layer.canvas.height = height;
-
-      // Restore content (might be scaled or cropped, depending on strategy)
-      // For now, just redraws, which might clear or distort.
-      // A more sophisticated approach would handle content scaling/cropping.
-      if (tempCtx) {
-          layer.context.drawImage(tempCanvas, 0, 0);
-      }
+      resizeCanvasWithContent(layer.canvas, layer.context, newSize);
     });
     // TODO: Emit event for redraw
   }
@@ -160,12 +145,7 @@ export class LayerManager {
     }
 
     // Create a new canvas and copy content for the re-added layer
-    const newCanvas = document.createElement('canvas');
-    newCanvas.width = layerData.canvas.width;
-    newCanvas.height = layerData.canvas.height;
-    const newCtx = newCanvas.getContext('2d');
-    if(!newCtx) throw new Error("Failed to get context for re-added layer");
-    newCtx.drawImage(layerData.canvas, 0, 0);
+    const { canvas: newCanvas, context: newCtx } = createTempCanvasFromSource(layerData.canvas);
 
     const newLayer: ILayer = {
       ...layerData,

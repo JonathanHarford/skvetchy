@@ -3,6 +3,7 @@
   import LayerPanel from './components/Layers/LayerPanel.svelte';
   import BrushModal from './components/Modals/BrushModal.svelte';
   import ColorModal from './components/Modals/ColorModal.svelte';
+  import BaseModal from './components/Modals/BaseModal.svelte';
   import Icon from './components/Icon.svelte';
   import type { ILayer } from './core/LayerManager';
 
@@ -325,11 +326,14 @@
 
 
   {#if showLayersModal}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div class="modal-overlay" onclick={() => showLayersModal = false} role="presentation">
-      <div class="modal-content layer-modal-content" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="layers-title" tabindex="0">
+    <BaseModal
+      show={showLayersModal}
+      title="Layers"
+      onclose={() => showLayersModal = false}
+      customClass="layer-modal-content"
+      ariaLabelledBy="layers-title"
+    >
+      {#snippet children()}
         <LayerPanel
           layers={layers}
           activeLayerId={activeLayerId}
@@ -340,45 +344,29 @@
           onrenameLayer={handleRenameLayer}
           onaddLayer={handleAddLayer}
         />
-      </div>
-    </div>
+      {/snippet}
+    </BaseModal>
   {/if}
 
 
 
-  {#if showColorModal}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div class="modal-overlay" onclick={() => showColorModal = false} role="presentation">
-      <div class="modal-content" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="color-modal-title" tabindex="0">
-        <ColorModal
-          penColor={penColor}
-          onsetcolor={(color) => {
-            penColor = color;
-            oncolorchange?.(penColor);
-          }}
-          onclose={() => showColorModal = false}
-        />
-      </div>
-    </div>
-  {/if}
+  <ColorModal
+    show={showColorModal}
+    penColor={penColor}
+    onsetcolor={(color) => {
+      penColor = color;
+      oncolorchange?.(penColor);
+    }}
+    onclose={() => showColorModal = false}
+  />
 
-  {#if showBrushModal}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div class="modal-overlay" onclick={() => showBrushModal = false} role="presentation">
-      <div class="modal-content" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="brush-modal-title" tabindex="0">
-        <BrushModal
-          penSize={penSize}
-          toolType={currentTool}
-          onsetsize={handleSetSize}
-          onclose={() => showBrushModal = false}
-        />
-      </div>
-    </div>
-  {/if}
+  <BrushModal
+    show={showBrushModal}
+    penSize={penSize}
+    toolType={currentTool}
+    onsetsize={handleSetSize}
+    onclose={() => showBrushModal = false}
+  />
 </main>
 
 <style>
@@ -459,26 +447,7 @@
     border-color: #bbb !important;
   }
 
-  .modal-overlay {
-    position: absolute; /* Position relative to the component container */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000; /* Ensure it's above other content */
-  }
 
-  .modal-content {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    /* Max width/height can be added as needed */
-  }
 
   /* Specific styling for layer modal if needed, e.g., size */
   .layer-modal-content {
