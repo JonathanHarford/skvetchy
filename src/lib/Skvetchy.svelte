@@ -5,7 +5,6 @@
   import ColorModal from './components/Modals/ColorModal.svelte';
   import Icon from './components/Icon.svelte';
   import type { ILayer } from './core/LayerManager';
-  import { createEventDispatcher } from 'svelte';
 
   // Props for customization
   let {
@@ -19,8 +18,15 @@
     enableDownload = false,
     className = '',
     imageWidth,
-    imageHeight
-  } = $props<{
+    imageHeight,
+    onlayerschange,
+    onactivelayerchange,
+    ontoolchange,
+    oncolorchange,
+    onsizechange,
+    onexport,
+    onfullscreentoggle
+  }: {
     width?: string | number;
     height?: string | number;
     backgroundColor?: string;
@@ -32,7 +38,14 @@
     className?: string;
     imageWidth: number;
     imageHeight: number;
-  }>();
+    onlayerschange?: (layers: readonly ILayer[]) => void;
+    onactivelayerchange?: (activeLayerId: string | null) => void;
+    ontoolchange?: (tool: 'pen' | 'eraser' | 'fill') => void;
+    oncolorchange?: (color: string) => void;
+    onsizechange?: (size: number) => void;
+    onexport?: (file: File) => void;
+    onfullscreentoggle?: (isFullscreen: boolean) => void;
+  } = $props();
 
   // Internal state
   let layers = $state<readonly ILayer[]>([]);
@@ -52,16 +65,7 @@
   let penBrushSize = $state(initialPenSize);
   let eraserSize = $state(20); // Default eraser size
 
-  // Event dispatcher for parent communication
-  const dispatch = createEventDispatcher<{
-    layersChange: readonly ILayer[];
-    activeLayerChange: string | null;
-    toolChange: 'pen' | 'eraser' | 'fill';
-    colorChange: string;
-    sizeChange: number;
-    export: File;
-    fullscreenToggle: boolean;
-  }>();
+
 
   // Update penSize based on current tool
   const penSize = $derived(currentTool === 'pen' ? penBrushSize : eraserSize);
@@ -69,30 +73,18 @@
   // Event handlers from Canvas for state updates
   function handleLayersUpdate(event: CustomEvent<readonly ILayer[]>) {
     layers = event.detail;
-    dispatch('layersChange', layers);
+    onlayerschange?.(layers);
   }
   
   function handleActiveIdUpdate(event: CustomEvent<string | null>) {
     activeLayerId = event.detail;
-    dispatch('activeLayerChange', activeLayerId);
+    onactivelayerchange?.(activeLayerId);
   }
   
   function handleHistoryChange(event: CustomEvent<{canUndo: boolean, canRedo: boolean}>) {
     canUndo = event.detail.canUndo;
     canRedo = event.detail.canRedo;
   }
-
-  // Tool event handlers
-  function handleSetTool(tool: 'pen' | 'eraser' | 'fill') {
-    currentTool = tool;
-    dispatch('toolChange', currentTool);
-  }
-  
-  // This function seems unused after refactor, color is bound or set by input
-  // function handleSetColor(color: string) {
-  //   penColor = color;
-  //   dispatch('colorChange', penColor);
-  // }
   
   function handleSetSize(event: CustomEvent<number>) {
     const size = event.detail;
@@ -102,7 +94,7 @@
       eraserSize = size;
     }
     // penSize is derived, no need to set it here
-    dispatch('sizeChange', size);
+    onsizechange?.(size);
   }
   
     function handleUndo() {
@@ -162,7 +154,7 @@
     if (canvasComponent) {
       const imageFile = await canvasComponent.exportToPNG();
       if (imageFile) {
-        dispatch('export', imageFile);
+        onexport?.(imageFile);
         
         // Default behavior: download the file
         const url = URL.createObjectURL(imageFile);
@@ -182,7 +174,7 @@
   // Fullscreen change listener
   function onFullscreenChange() {
     isFullscreen = !!document.fullscreenElement;
-    dispatch('fullscreenToggle', isFullscreen);
+    onfullscreentoggle?.(isFullscreen);
   }
 
   // Public API methods (exposed via $enhance)
@@ -212,7 +204,7 @@
       return;
     }
     currentTool = tool;
-    dispatch('toolChange', currentTool);
+    ontoolchange?.(currentTool);
   }
 
   // Handle color picker click to open color modal (if a separate button for modal is desired)
@@ -224,7 +216,7 @@
   function handleColorInput(event: Event) {
     const target = event.target as HTMLInputElement;
     penColor = target.value; // Direct assignment to $state variable
-    dispatch('colorChange', penColor);
+    oncolorchange?.(penColor);
   }
 
   $effect(() => {
@@ -355,7 +347,7 @@
           penColor={penColor}
           on:setColor={(e) => {
             penColor = e.detail;
-            dispatch('colorChange', penColor);
+            oncolorchange?.(penColor);
           }}
           on:close={() => showColorModal = false}
         />
