@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick, createEventDispatcher } from 'svelte';
+  import { tick } from 'svelte';
   import { LayerManager, type ILayer } from '../../core/LayerManager';
   import { PenTool } from '../../core/tools/PenTool';
   import { EraserTool } from '../../core/tools/EraserTool';
@@ -15,7 +15,10 @@
     activeLayerId: initialActiveLayerId = null,
     currentToolType: initialCurrentToolType = 'pen',
     imageWidth,
-    imageHeight
+    imageHeight,
+    onlayersupdate,
+    onactiveidupdate,
+    onhistorychange
   } = $props<{
     penColor?: string;
     penSize?: number;
@@ -24,13 +27,9 @@
     currentToolType?: 'pen' | 'eraser' | 'fill';
     imageWidth: number;
     imageHeight: number;
-  }>();
-
-  // Event dispatcher
-  const dispatch = createEventDispatcher<{
-    layersupdate: readonly ILayer[];
-    activeidupdate: string | null;
-    historychange: { canUndo: boolean, canRedo: boolean };
+    onlayersupdate?: (layers: readonly ILayer[]) => void;
+    onactiveidupdate?: (activeLayerId: string | null) => void;
+    onhistorychange?: (state: { canUndo: boolean, canRedo: boolean }) => void;
   }>();
 
   // Internal State
@@ -109,13 +108,13 @@
   function updateExternalState(dispatchHistoryChange = true) {
     const lm = layerManager;
     if (!lm) return;
-    // Dispatch updates for parent
-    dispatch('layersupdate', lm.getLayers());
-    dispatch('activeidupdate', lm.getActiveLayer()?.id || null);
+    // Call callback props for parent
+    onlayersupdate?.(lm.getLayers());
+    onactiveidupdate?.(lm.getActiveLayer()?.id || null);
 
     const hm = historyManager;
     if (dispatchHistoryChange && hm) {
-      dispatch('historychange', { canUndo: hm.canUndo(), canRedo: hm.canRedo() });
+      onhistorychange?.({ canUndo: hm.canUndo(), canRedo: hm.canRedo() });
     }
   }
 

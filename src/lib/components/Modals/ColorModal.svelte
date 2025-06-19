@@ -1,18 +1,17 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
-  let { penColor } = $props<{
+  let { 
+    penColor,
+    onsetcolor,
+    onclose
+  } = $props<{
     penColor: string;
-  }>();
-
-  const dispatch = createEventDispatcher<{
-    setColor: string; // Dispatched when color changes
-    close: void;    // Dispatched to close the modal
+    onsetcolor: (color: string) => void;
+    onclose: () => void;
   }>();
 
   function handleInput(event: Event) {
     const newColor = (event.target as HTMLInputElement).value;
-    dispatch('setColor', newColor);
+    onsetcolor(newColor);
   }
 </script>
 
@@ -27,7 +26,7 @@
     />
     <span>{penColor}</span>
   </div>
-  <button onclick={() => dispatch('close')}>Close</button>
+  <button onclick={onclose}>Close</button>
 </div>
 
 <style>

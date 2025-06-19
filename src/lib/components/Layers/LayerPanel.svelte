@@ -1,20 +1,26 @@
 <script lang="ts">
   import type { ILayer } from '../../core/LayerManager';
-  import { createEventDispatcher, tick } from 'svelte';
+  import { tick } from 'svelte';
   import Icon from '../Icon.svelte';
 
-  let { layers = [], activeLayerId = null } = $props<{
+  let { 
+    layers = [], 
+    activeLayerId = null,
+    onselectLayer,
+    ondeleteLayer,
+    ontoggleVisibility,
+    onreorderLayer,
+    onrenameLayer,
+    onaddLayer
+  } = $props<{
     layers?: readonly ILayer[];
     activeLayerId?: string | null;
-  }>();
-
-  const dispatch = createEventDispatcher<{
-    selectLayer: string;
-    deleteLayer: string;
-    toggleVisibility: string;
-    reorderLayer: { layerId: string; newIndex: number };
-    renameLayer: { layerId: string; newName: string };
-    addLayer: void; // New event for adding layers
+    onselectLayer?: (layerId: string) => void;
+    ondeleteLayer?: (layerId: string) => void;
+    ontoggleVisibility?: (layerId: string) => void;
+    onreorderLayer?: (data: { layerId: string; newIndex: number }) => void;
+    onrenameLayer?: (data: { layerId: string; newName: string }) => void;
+    onaddLayer?: () => void;
   }>();
 
   let editingLayerId = $state<string | null>(null);
@@ -54,7 +60,7 @@
       const targetIndex = reversedLayers.findIndex(l => l.id === targetLayerId);
       if (targetIndex !== -1) {
         const originalTargetIndex = layers.length - 1 - targetIndex;
-        dispatch('reorderLayer', { layerId: sourceLayerId, newIndex: originalTargetIndex });
+        onreorderLayer?.({ layerId: sourceLayerId, newIndex: originalTargetIndex });
       }
     }
     draggedItemId = null;
@@ -67,7 +73,7 @@
   }
 
   function handleAddLayer() {
-    dispatch('addLayer');
+    onaddLayer?.();
   }
 
   async function startEditing(layer: ILayer) {
@@ -86,7 +92,7 @@
     if (editingLayerId === layerId && editingName.trim() !== '') {
       const originalLayer = layers.find((l: ILayer) => l.id === layerId);
       if (originalLayer && originalLayer.name !== editingName.trim()) {
-        dispatch('renameLayer', { layerId, newName: editingName.trim() });
+        onrenameLayer?.({ layerId, newName: editingName.trim() });
       }
     }
     editingLayerId = null;
@@ -125,8 +131,8 @@
       >
         <div
           class="layer-content"
-          onclick={() => { if(editingLayerId !== layer.id) dispatch('selectLayer', layer.id); }}
-          onkeydown={(e) => { if((e.key === 'Enter' || e.key === ' ') && editingLayerId !== layer.id) dispatch('selectLayer', layer.id); }}
+          onclick={() => { if(editingLayerId !== layer.id) onselectLayer?.(layer.id); }}
+          onkeydown={(e) => { if((e.key === 'Enter' || e.key === ' ') && editingLayerId !== layer.id) onselectLayer?.(layer.id); }}
           tabindex="0"
           role="button"
           title={editingLayerId === layer.id ? 'Press Enter to save, Esc to cancel' : layer.name + ` (Z: ${layer.zIndex})`}
@@ -148,14 +154,14 @@
         {/if}
         <div class="layer-controls">
           <button
-            onclick={(e) => { e.stopPropagation(); dispatch('toggleVisibility', layer.id); }}
+            onclick={(e) => { e.stopPropagation(); ontoggleVisibility?.(layer.id); }}
             title={layer.isVisible ? 'Hide Layer' : 'Show Layer'}
             disabled={editingLayerId === layer.id}
           >
             <Icon name={layer.isVisible ? 'eye-open' : 'eye-closed'} size={16} />
           </button>
           <button
-            onclick={(e) => { e.stopPropagation(); dispatch('deleteLayer', layer.id); }}
+            onclick={(e) => { e.stopPropagation(); ondeleteLayer?.(layer.id); }}
             disabled={layers.length <= 1 || editingLayerId === layer.id}
             title="Delete Layer"
           >

@@ -1,19 +1,19 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
-  let { penSize, toolType = 'pen' } = $props<{
+  let { 
+    penSize, 
+    toolType = 'pen',
+    onsetsize,
+    onclose
+  } = $props<{
     penSize: number;
     toolType?: 'pen' | 'eraser' | 'fill';
-  }>();
-
-  const dispatch = createEventDispatcher<{
-    setSize: number; // Dispatched when size changes
-    close: void;   // Dispatched to close the modal
+    onsetsize: (size: number) => void;
+    onclose: () => void;
   }>();
 
   function handleInput(event: Event) {
     const newSize = parseInt((event.target as HTMLInputElement).value);
-    dispatch('setSize', newSize);
+    onsetsize(newSize);
   }
 
   const title = $derived(toolType === 'pen' ? 'Brush Size' : toolType === 'eraser' ? 'Eraser Size' : 'Fill Bucket');
@@ -32,7 +32,7 @@
     />
     <span>{penSize}px</span>
   </div>
-  <button onclick={() => dispatch('close')}>Close</button>
+  <button onclick={onclose}>Close</button>
 </div>
 
 <style>

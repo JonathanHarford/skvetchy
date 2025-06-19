@@ -70,24 +70,23 @@
   // Update penSize based on current tool
   const penSize = $derived(currentTool === 'pen' ? penBrushSize : eraserSize);
 
-  // Event handlers from Canvas for state updates
-  function handleLayersUpdate(event: CustomEvent<readonly ILayer[]>) {
-    layers = event.detail;
+  // Callback handlers from Canvas for state updates
+  function handleLayersUpdate(newLayers: readonly ILayer[]) {
+    layers = newLayers;
     onlayerschange?.(layers);
   }
   
-  function handleActiveIdUpdate(event: CustomEvent<string | null>) {
-    activeLayerId = event.detail;
+  function handleActiveIdUpdate(newActiveLayerId: string | null) {
+    activeLayerId = newActiveLayerId;
     onactivelayerchange?.(activeLayerId);
   }
   
-  function handleHistoryChange(event: CustomEvent<{canUndo: boolean, canRedo: boolean}>) {
-    canUndo = event.detail.canUndo;
-    canRedo = event.detail.canRedo;
+  function handleHistoryChange(state: {canUndo: boolean, canRedo: boolean}) {
+    canUndo = state.canUndo;
+    canRedo = state.canRedo;
   }
   
-  function handleSetSize(event: CustomEvent<number>) {
-    const size = event.detail;
+  function handleSetSize(size: number) {
     if (currentTool === 'pen') {
       penBrushSize = size;
     } else {
@@ -130,24 +129,24 @@
   }
 
   // LayerPanel event handlers
-  function handleSelectLayer(event: CustomEvent<string>) {
-    canvasComponent?.setActiveLayer(event.detail);
+  function handleSelectLayer(layerId: string) {
+    canvasComponent?.setActiveLayer(layerId);
   }
   
-  function handleDeleteLayer(event: CustomEvent<string>) {
-    canvasComponent?.deleteLayer(event.detail);
+  function handleDeleteLayer(layerId: string) {
+    canvasComponent?.deleteLayer(layerId);
   }
   
-  function handleToggleVisibility(event: CustomEvent<string>) {
-    canvasComponent?.toggleLayerVisibility(event.detail);
+  function handleToggleVisibility(layerId: string) {
+    canvasComponent?.toggleLayerVisibility(layerId);
   }
   
-  function handleReorderLayer(event: CustomEvent<{layerId: string; newIndex: number}>) {
-    canvasComponent?.reorderLayer(event.detail.layerId, event.detail.newIndex);
+  function handleReorderLayer(data: {layerId: string; newIndex: number}) {
+    canvasComponent?.reorderLayer(data.layerId, data.newIndex);
   }
   
-  function handleRenameLayer(event: CustomEvent<{layerId: string; newName: string}>) {
-    canvasComponent?.renameLayer(event.detail.layerId, event.detail.newName);
+  function handleRenameLayer(data: {layerId: string; newName: string}) {
+    canvasComponent?.renameLayer(data.layerId, data.newName);
   }
 
   async function handleExportPNG() {
@@ -177,24 +176,34 @@
     onfullscreentoggle?.(isFullscreen);
   }
 
-  // Public API methods (exposed via $enhance)
-  // These are now part of the component's instance methods by default with runes
-  // No explicit export needed for parent calls if using bind:this and calling methods on the instance.
-  // However, if you need to expose them explicitly (e.g. for non-Svelte environments or specific patterns),
-  // you might need a different approach or rely on bind:this.
-  // For now, assuming standard Svelte component interaction.
-
-  // Public API methods accessible via component instance
-  const public_api = {
-    undo: () => canvasComponent?.undo(),
-    redo: () => canvasComponent?.redo(),
-    addLayer: () => canvasComponent?.addLayer(),
-    clearActiveLayer: () => canvasComponent?.clearActiveLayer(),
-    exportToPNG: async () => await canvasComponent?.exportToPNG(),
-    getLayers: () => layers,
-    getActiveLayerId: () => activeLayerId,
+  // Public API methods - exported functions are accessible on component instance
+  export function undo() {
+    canvasComponent?.undo();
   }
-  $inspect(public_api); // Make methods available on component instance
+
+  export function redo() {
+    canvasComponent?.redo();
+  }
+
+  export function addLayer() {
+    canvasComponent?.addLayer();
+  }
+
+  export function clearActiveLayer() {
+    canvasComponent?.clearActiveLayer();
+  }
+
+  export async function exportToPNG() {
+    return await canvasComponent?.exportToPNG();
+  }
+
+  export function getLayers() {
+    return layers;
+  }
+
+  export function getActiveLayerId() {
+    return activeLayerId;
+  }
 
 
   // Handle tool button clicks
@@ -265,9 +274,9 @@
       currentToolType={currentTool}
       imageWidth={imageWidth}
       imageHeight={imageHeight}
-      on:layersupdate={handleLayersUpdate}
-      on:activeidupdate={handleActiveIdUpdate}
-      on:historychange={handleHistoryChange}
+      onlayersupdate={handleLayersUpdate}
+      onactiveidupdate={handleActiveIdUpdate}
+      onhistorychange={handleHistoryChange}
       layers={layers}
       activeLayerId={activeLayerId}
     />
@@ -324,12 +333,12 @@
         <LayerPanel
           layers={layers}
           activeLayerId={activeLayerId}
-          on:selectLayer={handleSelectLayer}
-          on:deleteLayer={handleDeleteLayer}
-          on:toggleVisibility={handleToggleVisibility}
-          on:reorderLayer={handleReorderLayer}
-          on:renameLayer={handleRenameLayer}
-          on:addLayer={handleAddLayer}
+          onselectLayer={handleSelectLayer}
+          ondeleteLayer={handleDeleteLayer}
+          ontoggleVisibility={handleToggleVisibility}
+          onreorderLayer={handleReorderLayer}
+          onrenameLayer={handleRenameLayer}
+          onaddLayer={handleAddLayer}
         />
       </div>
     </div>
@@ -345,11 +354,11 @@
       <div class="modal-content" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="color-modal-title" tabindex="0">
         <ColorModal
           penColor={penColor}
-          on:setColor={(e) => {
-            penColor = e.detail;
+          onsetcolor={(color) => {
+            penColor = color;
             oncolorchange?.(penColor);
           }}
-          on:close={() => showColorModal = false}
+          onclose={() => showColorModal = false}
         />
       </div>
     </div>
@@ -364,8 +373,8 @@
         <BrushModal
           penSize={penSize}
           toolType={currentTool}
-          on:setSize={handleSetSize}
-          on:close={() => showBrushModal = false}
+          onsetsize={handleSetSize}
+          onclose={() => showBrushModal = false}
         />
       </div>
     </div>
