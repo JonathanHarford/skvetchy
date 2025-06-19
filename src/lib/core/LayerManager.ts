@@ -23,6 +23,24 @@ export class LayerManager {
     this.addLayer('Background', initialWidth, initialHeight);
   }
 
+  /**
+   * Helper method to find a layer by its ID
+   * @param id The layer ID to search for
+   * @returns The layer if found, null otherwise
+   */
+  findLayerById(id: string): ILayer | null {
+    return this.layers.find(l => l.id === id) || null;
+  }
+
+  /**
+   * Helper method to find the index of a layer by its ID
+   * @param id The layer ID to search for
+   * @returns The index of the layer if found, -1 otherwise
+   */
+  findLayerIndexById(id: string): number {
+    return this.layers.findIndex(l => l.id === id);
+  }
+
   private createLayer(name: string, width: number, height: number, zIndex: number): ILayer {
     const { canvas, context } = createTempCanvas(width, height);
     return {
@@ -43,7 +61,7 @@ export class LayerManager {
 
     if (activeLayer) {
       // Insert the new layer directly above the active layer
-      insertIndex = this.layers.findIndex(l => l.id === activeLayer.id) + 1;
+      insertIndex = this.findLayerIndexById(activeLayer.id) + 1;
       newZIndex = activeLayer.zIndex + 1;
       
       // Shift zIndex of all layers above the insertion point
@@ -72,7 +90,7 @@ export class LayerManager {
       console.warn("Cannot delete the last layer.");
       return;
     }
-    const layerIndex = this.layers.findIndex(l => l.id === id);
+    const layerIndex = this.findLayerIndexById(id);
     if (layerIndex === -1) return;
 
     this.layers.splice(layerIndex, 1);
@@ -87,14 +105,14 @@ export class LayerManager {
   }
 
   setActiveLayer(id: string): void {
-    if (this.layers.find(l => l.id === id)) {
+    if (this.findLayerById(id)) {
       this.activeLayerId = id;
       // TODO: Emit event for UI update
     }
   }
 
   getActiveLayer(): ILayer | null {
-    return this.layers.find(l => l.id === this.activeLayerId) || null;
+    return this.activeLayerId ? this.findLayerById(this.activeLayerId) : null;
   }
 
   getLayers(): ReadonlyArray<ILayer> {
@@ -102,7 +120,7 @@ export class LayerManager {
   }
 
   toggleLayerVisibility(id: string): void {
-    const layer = this.layers.find(l => l.id === id);
+    const layer = this.findLayerById(id);
     if (layer) {
       layer.isVisible = !layer.isVisible;
       // TODO: Emit event for UI update
@@ -112,7 +130,7 @@ export class LayerManager {
   // Modify reorderLayer to be more suitable for drag-and-drop (new index based)
   // and to return information for history
   reorderLayer(layerId: string, newVisualIndex: number): { oldVisualIndex: number, newVisualIndex: number } | null {
-    const layerIndex = this.layers.findIndex(l => l.id === layerId);
+    const layerIndex = this.findLayerIndexById(layerId);
     if (layerIndex === -1) return null;
 
     const layerToMove = this.layers.splice(layerIndex, 1)[0];
@@ -138,7 +156,7 @@ export class LayerManager {
 
   addLayerWithData(layerData: ILayer, index?: number): ILayer | null {
     // Check if layer with this ID already exists to prevent duplicates if not handled carefully
-    if (this.layers.find(l => l.id === layerData.id)) {
+    if (this.findLayerById(layerData.id)) {
         console.warn(`Layer with ID ${layerData.id} already exists. Cannot re-add.`);
         // Optionally, find and update it, or handle as an error
         return null;
@@ -174,7 +192,7 @@ export class LayerManager {
   }
 
   renameLayer(id: string, newName: string): { oldName: string } | null {
-    const layer = this.layers.find(l => l.id === id);
+    const layer = this.findLayerById(id);
     if (layer) {
       const oldName = layer.name;
       if (oldName === newName) return null; // No change, no history needed

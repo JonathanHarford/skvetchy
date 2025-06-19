@@ -102,4 +102,48 @@ describe('LayerManager', () => {
       expect(layer1.zIndex).toBe(initialLayers.length);
     });
   });
+
+  describe('findLayerById', () => {
+    it('should find a layer by its ID', () => {
+      const layers = layerManager.getLayers();
+      const backgroundLayer = layers[0];
+      
+      // Add another layer
+      const layer1 = layerManager.addLayer('Layer 1', 800, 600);
+      
+      // Test finding existing layers
+      expect(layerManager.findLayerById(backgroundLayer.id)).toBe(backgroundLayer);
+      expect(layerManager.findLayerById(layer1.id)).toBe(layer1);
+    });
+
+    it('should return null for non-existent layer ID', () => {
+      expect(layerManager.findLayerById('non-existent-id')).toBeNull();
+    });
+
+    it('should return null for empty string ID', () => {
+      expect(layerManager.findLayerById('')).toBeNull();
+    });
+  });
+
+  describe('findLayerIndexById', () => {
+    it('should find the index of a layer by its ID', () => {
+      const layers = layerManager.getLayers();
+      const backgroundLayer = layers[0];
+      
+      // Add another layer
+      const layer1 = layerManager.addLayer('Layer 1', 800, 600);
+      
+      // Test finding existing layer indices
+      expect(layerManager.findLayerIndexById(backgroundLayer.id)).toBe(0);
+      expect(layerManager.findLayerIndexById(layer1.id)).toBe(1);
+    });
+
+    it('should return -1 for non-existent layer ID', () => {
+      expect(layerManager.findLayerIndexById('non-existent-id')).toBe(-1);
+    });
+
+    it('should return -1 for empty string ID', () => {
+      expect(layerManager.findLayerIndexById('')).toBe(-1);
+    });
+  });
 }); 

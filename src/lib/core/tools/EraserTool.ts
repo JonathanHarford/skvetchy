@@ -1,74 +1,51 @@
 import type { ILayer } from '../LayerManager';
 import type { ITool } from './ITool';
+import { processPressureInitial, processPressureWithSmoothing, hasSignificantPressureChange, type PressureState } from './PressureUtils';
+import { setupStrokeContextWithPosition, createNewStrokeSegment, setCompositeOperation, resetCompositeOperation } from './CanvasContextUtils';
 
 export class EraserTool implements ITool {
   private erasing = false;
   private lastX = 0;
   private lastY = 0;
-  private lastPressure = 0; // Track last pressure to detect changes
+  private pressureState: PressureState = { lastPressure: 0 };
 
   activate(context: CanvasRenderingContext2D): void {
-    context.globalCompositeOperation = 'destination-out';
+    setCompositeOperation(context, 'destination-out');
   }
 
   deactivate(context: CanvasRenderingContext2D): void {
-    context.globalCompositeOperation = 'source-over';
+    resetCompositeOperation(context);
   }
 
   onPointerDown(event: PointerEvent, activeLayer: ILayer, _color: string, penSize: number, pressure?: number): void {
     if (event.button !== 0) return;
     this.erasing = true;
 
-    // globalCompositeOperation is set by activate method when tool is selected
-    // activeLayer.context.globalCompositeOperation = 'destination-out'; // No longer needed here
+    // Process pressure using shared utility
+    const currentPressure = processPressureInitial(pressure);
+    this.pressureState.lastPressure = currentPressure;
 
-    // Improved pressure handling with bounds checking and validation
-    let currentPressure = pressure || 1.0;
-    
-    // Clamp pressure to reasonable bounds (Apple Pencil can sometimes report values outside 0-1)
-    currentPressure = Math.max(0.1, Math.min(1.0, currentPressure));
-    
-    this.lastPressure = currentPressure;
-
-    activeLayer.context.beginPath();
-    activeLayer.context.lineWidth = penSize * currentPressure;
-    activeLayer.context.lineCap = 'round';
-    activeLayer.context.lineJoin = 'round';
-
+    // Setup canvas context using shared utility (no color needed for eraser)
     this.lastX = event.offsetX;
     this.lastY = event.offsetY;
-    activeLayer.context.moveTo(this.lastX, this.lastY);
+    setupStrokeContextWithPosition(activeLayer.context, {
+      lineWidth: penSize * currentPressure
+    }, this.lastX, this.lastY);
   }
 
   onPointerMove(event: PointerEvent, activeLayer: ILayer, _color: string, penSize: number, pressure?: number): void {
     if (!this.erasing) return;
 
-    // Improved pressure handling with bounds checking and smoothing
-    let currentPressure = pressure || 1.0;
-    
-    // Clamp pressure to reasonable bounds
-    currentPressure = Math.max(0.1, Math.min(1.0, currentPressure));
-    
-    // Smooth pressure transitions to prevent jarring changes
-    // If pressure change is very large (>0.3), limit the change per frame
-    const pressureDiff = currentPressure - this.lastPressure;
-    if (Math.abs(pressureDiff) > 0.3) {
-      // Limit pressure change to prevent sudden jumps
-      currentPressure = this.lastPressure + (pressureDiff > 0 ? 0.3 : -0.3);
-    }
+    // Process pressure using shared utility
+    const currentPressure = processPressureWithSmoothing(pressure, this.pressureState);
     
     // If pressure has changed significantly, start a new path segment
-    if (Math.abs(currentPressure - this.lastPressure) > 0.05) {
-      activeLayer.context.lineTo(event.offsetX, event.offsetY);
-      activeLayer.context.stroke();
+    if (hasSignificantPressureChange(currentPressure, this.pressureState.lastPressure)) {
+      createNewStrokeSegment(activeLayer.context, {
+        lineWidth: penSize * currentPressure
+      }, this.lastX, this.lastY, event.offsetX, event.offsetY);
       
-      activeLayer.context.beginPath();
-      activeLayer.context.lineWidth = penSize * currentPressure;
-      activeLayer.context.lineCap = 'round';
-      activeLayer.context.lineJoin = 'round';
-      activeLayer.context.moveTo(this.lastX, this.lastY);
-      
-      this.lastPressure = currentPressure;
+      this.pressureState.lastPressure = currentPressure;
     }
 
     activeLayer.context.lineTo(event.offsetX, event.offsetY);
@@ -82,9 +59,6 @@ export class EraserTool implements ITool {
     if (event.button !== 0) return;
     if (!this.erasing) return;
     this.erasing = false;
-    this.lastPressure = 0; // Reset pressure tracking
-
-    // globalCompositeOperation is reset by deactivate method when tool is unselected
-    // activeLayer.context.globalCompositeOperation = 'source-over'; // No longer needed here
+    this.pressureState.lastPressure = 0; // Reset pressure tracking
   }
 }

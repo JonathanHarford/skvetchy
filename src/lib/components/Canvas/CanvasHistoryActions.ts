@@ -8,6 +8,7 @@ export interface HistoryActionContext {
   height: number;
   requestRedraw: () => void;
   updateExternalState: (dispatchHistoryChange?: boolean) => void;
+  updateExternalStatePartial: (updateLayers?: boolean, updateActiveId?: boolean, updateHistory?: boolean) => void;
 }
 
 export class CanvasHistoryActions {
@@ -22,11 +23,11 @@ export class CanvasHistoryActions {
   }
 
   applyHistoryAction = (action: IHistoryAction, isUndo: boolean): void => {
-    const { layerManager, width, height, requestRedraw, updateExternalState } = this.context;
+    const { layerManager, width, height, requestRedraw, updateExternalStatePartial } = this.context;
     
     if (!layerManager) return;
     
-    const layerToActOn = layerManager.getLayers().find(l => l.id === action.layerId);
+    const layerToActOn = action.layerId ? layerManager.findLayerById(action.layerId) : null;
 
     if (!layerToActOn && action.type !== 'addLayer' && action.type !== 'deleteLayer' && action.type !== 'reorderLayer') {
       console.warn('Layer not found for history action:', action);
@@ -37,25 +38,30 @@ export class CanvasHistoryActions {
       case 'stroke':
       case 'clearLayer':
         this.handleStrokeOrClearAction(action, isUndo, layerToActOn, requestRedraw);
+        updateExternalStatePartial(true, false, false);
         break;
       case 'addLayer':
         this.handleAddLayerAction(action, isUndo, layerManager, width, height);
+        updateExternalStatePartial(true, true, false);
         break;
       case 'deleteLayer':
         this.handleDeleteLayerAction(action, isUndo, layerManager);
+        updateExternalStatePartial(true, true, false);
         break;
       case 'toggleLayerVisibility':
         this.handleToggleVisibilityAction(action, isUndo, layerToActOn);
+        updateExternalStatePartial(true, false, false);
         break;
       case 'reorderLayer':
         this.handleReorderLayerAction(action, isUndo, layerManager);
+        updateExternalStatePartial(true, false, false);
         break;
       case 'renameLayer':
         this.handleRenameLayerAction(action, isUndo, layerToActOn);
+        updateExternalStatePartial(true, false, false);
         break;
     }
     
-    updateExternalState(false);
     requestRedraw();
   };
 

@@ -1,11 +1,12 @@
 import type { ILayer } from '../LayerManager';
 import type { ITool } from './ITool';
+import { setCompositeOperation } from './CanvasContextUtils';
 
 export class FillBucketTool implements ITool {
   private filling = false;
 
   activate(context: CanvasRenderingContext2D): void {
-    context.globalCompositeOperation = 'source-over';
+    setCompositeOperation(context, 'source-over');
   }
 
   deactivate(context: CanvasRenderingContext2D): void {
@@ -15,9 +16,6 @@ export class FillBucketTool implements ITool {
   onPointerDown(event: PointerEvent, activeLayer: ILayer, color: string, penSize: number, pressure?: number): void {
     if (event.button !== 0) return;
     this.filling = true;
-
-    // Ensure correct composite operation when this tool becomes active
-    activeLayer.context.globalCompositeOperation = 'source-over';
 
     // Perform flood fill at the clicked position
     this.floodFill(activeLayer, event.offsetX, event.offsetY, color);

@@ -98,20 +98,20 @@
   }
   
     function handleUndo() {
-    canvasComponent?.undo();
+    undo();
   }
 
   function handleRedo() {
-    canvasComponent?.redo();
+    redo();
   }
   
   function handleAddLayer() {
-    canvasComponent?.addLayer();
+    addLayer();
   }
   
   function handleClearActiveLayer() {
     if (window.confirm('Are you sure you want to clear the active layer? This action cannot be undone directly by another clear, only by regular undo.')) {
-      canvasComponent?.clearActiveLayer();
+      clearActiveLayer();
     }
   }
   
@@ -129,45 +129,24 @@
     }
   }
 
-  // LayerPanel event handlers
-  function handleSelectLayer(layerId: string) {
-    canvasComponent?.setActiveLayer(layerId);
-  }
-  
-  function handleDeleteLayer(layerId: string) {
-    canvasComponent?.deleteLayer(layerId);
-  }
-  
-  function handleToggleVisibility(layerId: string) {
-    canvasComponent?.toggleLayerVisibility(layerId);
-  }
-  
-  function handleReorderLayer(data: {layerId: string; newIndex: number}) {
-    canvasComponent?.reorderLayer(data.layerId, data.newIndex);
-  }
-  
-  function handleRenameLayer(data: {layerId: string; newName: string}) {
-    canvasComponent?.renameLayer(data.layerId, data.newName);
-  }
+
 
   async function handleExportPNG() {
-    if (canvasComponent) {
-      const imageFile = await canvasComponent.exportToPNG();
-      if (imageFile) {
-        onexport?.(imageFile);
-        
-        // Default behavior: download the file
-        const url = URL.createObjectURL(imageFile);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = imageFile.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } else {
-        console.error("Failed to export image");
-      }
+    const imageFile = await exportToPNG();
+    if (imageFile) {
+      onexport?.(imageFile);
+      
+      // Default behavior: download the file
+      const url = URL.createObjectURL(imageFile);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = imageFile.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      console.error("Failed to export image");
     }
   }
 
@@ -186,13 +165,7 @@
     canvasComponent?.redo();
   }
 
-  export function addLayer() {
-    canvasComponent?.addLayer();
-  }
 
-  export function clearActiveLayer() {
-    canvasComponent?.clearActiveLayer();
-  }
 
   export async function exportToPNG() {
     return await canvasComponent?.exportToPNG();
@@ -204,6 +177,15 @@
 
   export function getActiveLayerId() {
     return activeLayerId;
+  }
+
+  // Layer management methods - direct forwarding to Canvas
+  export function addLayer() {
+    return canvasComponent?.addLayer();
+  }
+
+  export function clearActiveLayer() {
+    return canvasComponent?.clearActiveLayer();
   }
 
 
@@ -337,11 +319,11 @@
         <LayerPanel
           layers={layers}
           activeLayerId={activeLayerId}
-          onselectLayer={handleSelectLayer}
-          ondeleteLayer={handleDeleteLayer}
-          ontoggleVisibility={handleToggleVisibility}
-          onreorderLayer={handleReorderLayer}
-          onrenameLayer={handleRenameLayer}
+          onselectLayer={(layerId) => canvasComponent?.setActiveLayer(layerId)}
+          ondeleteLayer={(layerId) => canvasComponent?.deleteLayer(layerId)}
+          ontoggleVisibility={(layerId) => canvasComponent?.toggleLayerVisibility(layerId)}
+          onreorderLayer={(data) => canvasComponent?.reorderLayer(data.layerId, data.newIndex)}
+          onrenameLayer={(data) => canvasComponent?.renameLayer(data.layerId, data.newName)}
           onaddLayer={handleAddLayer}
         />
       {/snippet}

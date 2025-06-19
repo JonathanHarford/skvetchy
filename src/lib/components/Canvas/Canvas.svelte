@@ -103,6 +103,25 @@
     }
   }
 
+  // Optimized version for operations that only affect specific state parts
+  function updateExternalStatePartial(updateLayers = false, updateActiveId = false, updateHistory = false) {
+    const lm = layerManager;
+    if (!lm) return;
+    
+    if (updateLayers) {
+      onlayersupdate?.(lm.getLayers());
+    }
+    if (updateActiveId) {
+      onactiveidupdate?.(lm.getActiveLayer()?.id || null);
+    }
+    if (updateHistory) {
+      const hm = historyManager;
+      if (hm) {
+        onhistorychange?.({ canUndo: hm.canUndo(), canRedo: hm.canRedo() });
+      }
+    }
+  }
+
   function requestRedraw() {
     requestAnimationFrame(drawLayers);
   }
@@ -115,7 +134,8 @@
         width,
         height,
         requestRedraw,
-        updateExternalState
+        updateExternalState,
+        updateExternalStatePartial
       };
       canvasHistoryActions.updateContext(historyContext);
     }
@@ -132,7 +152,8 @@
         displayCanvasElement,
         imageDataBeforeStroke,
         requestRedraw,
-        updateExternalState
+        updateExternalState,
+        updateExternalStatePartial
       };
       canvasEventHandlers.updateContext(eventContext);
     }
@@ -159,7 +180,8 @@
       width,
       height,
       requestRedraw,
-      updateExternalState
+      updateExternalState,
+      updateExternalStatePartial
     };
     canvasHistoryActions = new CanvasHistoryActions(historyContext);
 
@@ -172,7 +194,8 @@
       displayCanvasElement,
       imageDataBeforeStroke,
       requestRedraw,
-      updateExternalState
+      updateExternalState,
+      updateExternalStatePartial
     };
     canvasEventHandlers = new CanvasEventHandlers(eventContext);
 
@@ -354,7 +377,7 @@
     if (!lm || !hm) return;
     const newLayer = lm.addLayer(undefined, width, height);
     hm.addHistory({ type: 'addLayer', layerId: newLayer.id });
-    updateExternalState();
+    updateExternalStatePartial(true, true, true);
     requestRedraw();
   }
 
@@ -373,7 +396,7 @@
         imageDataBefore: beforeState,
         imageDataAfter: afterState,
       });
-      updateExternalState();
+      updateExternalStatePartial(false, false, true);
       requestRedraw();
     }
   }
@@ -388,7 +411,7 @@
 
     if (cti?.deactivate && oldActiveLayer?.context) cti.deactivate(oldActiveLayer.context);
     if (cti?.activate && newActiveLayer?.context) cti.activate(newActiveLayer.context);
-    updateExternalState(); // Dispatch activeidupdate
+    updateExternalStatePartial(false, true, false);
   }
 
   export function deleteLayer(id: string) {
@@ -396,8 +419,8 @@
     const hm = historyManager;
     if (!lm || !hm) return;
 
-    const layerToDelete = lm.getLayers().find(l => l.id === id);
-    const layerIndex = lm.getLayers().findIndex(l => l.id === id);
+    const layerToDelete = lm.findLayerById(id);
+    const layerIndex = lm.findLayerIndexById(id);
 
     if (layerToDelete) {
         const backup = createLayerBackup(layerToDelete.canvas);
@@ -414,7 +437,9 @@
         });
     }
     lm.deleteLayer(id);
-    updateExternalState();
+    // History action in CanvasHistoryActions will call updateExternalState(false)
+    // We only need to update history state
+    updateExternalStatePartial(false, false, true);
     requestRedraw();
   }
 
@@ -422,7 +447,7 @@
     const lm = layerManager;
     const hm = historyManager;
     if (!lm || !hm) return;
-    const layer = lm.getLayers().find(l => l.id === id);
+    const layer = lm.findLayerById(id);
     if (layer) {
       const visibilityBefore = layer.isVisible;
       lm.toggleLayerVisibility(id);
@@ -431,7 +456,9 @@
         layerId: id,
         visibilityBefore: visibilityBefore,
       });
-      updateExternalState();
+      // History action in CanvasHistoryActions will call updateExternalState(false)
+      // We only need to update history state
+      updateExternalStatePartial(false, false, true);
       requestRedraw();
     }
   }
@@ -440,7 +467,7 @@
     const lm = layerManager;
     const hm = historyManager;
     if (!lm || !hm) return;
-    const layer = lm.getLayers().find(l => l.id === layerId);
+    const layer = lm.findLayerById(layerId);
     if (!layer) return;
 
     const result = lm.reorderLayer(layerId, newVisualIndex);
@@ -450,7 +477,9 @@
             layerId: layerId,
             meta: { oldVisualIndex: result.oldVisualIndex, newVisualIndex: result.newVisualIndex, targetLayerId: layerId }
         });
-        updateExternalState();
+        // History action in CanvasHistoryActions will call updateExternalState(false)
+        // We only need to update history state
+        updateExternalStatePartial(false, false, true);
         requestRedraw();
     }
   }
@@ -466,7 +495,9 @@
         layerId: layerId,
         meta: { oldName: result.oldName, newName: newName }
       });
-      updateExternalState();
+      // History action in CanvasHistoryActions will call updateExternalState(false)
+      // We only need to update history state
+      updateExternalStatePartial(false, false, true);
     }
   }
 

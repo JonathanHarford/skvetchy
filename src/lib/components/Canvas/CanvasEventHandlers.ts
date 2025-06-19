@@ -12,6 +12,7 @@ export interface CanvasEventHandlerContext {
   imageDataBeforeStroke: string | undefined;
   requestRedraw: () => void;
   updateExternalState: () => void;
+  updateExternalStatePartial: (updateLayers?: boolean, updateActiveId?: boolean, updateHistory?: boolean) => void;
 }
 
 export class CanvasEventHandlers {
@@ -63,7 +64,7 @@ export class CanvasEventHandlers {
   };
 
   handlePointerUp = (event: PointerEvent, imageDataBeforeStroke?: string): void => {
-    const { currentToolInstance, layerManager, historyManager, displayCanvasElement, updateExternalState, requestRedraw } = this.context;
+    const { currentToolInstance, layerManager, historyManager, displayCanvasElement, updateExternalStatePartial, requestRedraw } = this.context;
     
     if (!currentToolInstance || !layerManager || !historyManager) return;
 
@@ -80,7 +81,7 @@ export class CanvasEventHandlers {
           imageDataBefore: imageDataBeforeStroke,
           imageDataAfter: imageDataAfterStroke,
         });
-        updateExternalState();
+        updateExternalStatePartial(false, false, true);
       }
       requestRedraw();
     }
