@@ -153,27 +153,71 @@
   $effect(() => {
     const currentContainerEl = containerElement;
     if (currentContainerEl) {
+      // Function to wait for actual dimensions
+      const waitForDimensions = (): Promise<{ width: number; height: number }> => {
+        return new Promise((resolve) => {
+          const checkDimensions = () => {
+            const rect = currentContainerEl.getBoundingClientRect();
+            const clientWidth = currentContainerEl.clientWidth;
+            const clientHeight = currentContainerEl.clientHeight;
+            
+            // Check if we have actual dimensions (not zero)
+            if (clientWidth > 0 && clientHeight > 0) {
+              resolve({ width: clientWidth, height: clientHeight });
+            } else {
+              // Use requestAnimationFrame to check again on next frame
+              requestAnimationFrame(checkDimensions);
+            }
+          };
+          checkDimensions();
+        });
+      };
+
+      // Initialize with proper dimensions
+      const initializeWithDimensions = async () => {
+        const dimensions = await waitForDimensions();
+        width = dimensions.width;
+        height = dimensions.height;
+        
+        const currentDisplayEl = displayCanvasElement;
+        if (currentDisplayEl) {
+          currentDisplayEl.width = width;
+          currentDisplayEl.height = height;
+        }
+        
+        // Initialize canvas only after we have proper dimensions
+        await initializeCanvas();
+      };
+
       const resizeObserver = new ResizeObserver(async entries => {
         for (let entry of entries) {
-          width = entry.contentRect.width;
-          height = entry.contentRect.height;
-          const currentDisplayEl = displayCanvasElement;
-          if (currentDisplayEl) {
-            currentDisplayEl.width = width;
-            currentDisplayEl.height = height;
-          }
-          const lm = layerManager;
-          if (lm) {
-            lm.resizeLayers(width, height);
-            requestRedraw();
+          const newWidth = entry.contentRect.width;
+          const newHeight = entry.contentRect.height;
+          
+          // Only update if dimensions actually changed and are valid
+          if (newWidth > 0 && newHeight > 0 && (newWidth !== width || newHeight !== height)) {
+            width = newWidth;
+            height = newHeight;
+            
+            const currentDisplayEl = displayCanvasElement;
+            if (currentDisplayEl) {
+              currentDisplayEl.width = width;
+              currentDisplayEl.height = height;
+            }
+            
+            const lm = layerManager;
+            if (lm) {
+              lm.resizeLayers(width, height);
+              requestRedraw();
+            }
           }
         }
       });
+      
       resizeObserver.observe(currentContainerEl);
-
-      width = currentContainerEl.clientWidth;
-      height = currentContainerEl.clientHeight;
-      initializeCanvas();
+      
+      // Initialize with proper dimension checking
+      initializeWithDimensions();
 
       return () => {
         resizeObserver.unobserve(currentContainerEl);
@@ -404,7 +448,7 @@
     }
   }
 
-  export function setActiveLayer(id) {
+  export function setActiveLayer(id: string) {
     const lm = layerManager;
     if (!lm) return;
     const oldActiveLayer = lm.getActiveLayer();
@@ -417,7 +461,7 @@
     updateExternalState(); // Dispatch activeidupdate
   }
 
-  export function deleteLayer(id) {
+  export function deleteLayer(id: string) {
     const lm = layerManager;
     const hm = historyManager;
     if (!lm || !hm) return;
@@ -435,7 +479,7 @@
         const deletedLayerDataClone = {
             ...layerToDelete,
             canvas: tempCanvas,
-            context: tempCtx, // We've checked if it's null implicitly by drawing
+            context: tempCtx!, // We know it's not null because we used it to draw
         };
         hm.addHistory({
             type: 'deleteLayer',
@@ -449,7 +493,7 @@
     requestRedraw();
   }
 
-  export function toggleLayerVisibility(id) {
+  export function toggleLayerVisibility(id: string) {
     const lm = layerManager;
     const hm = historyManager;
     if (!lm || !hm) return;
@@ -467,7 +511,7 @@
     }
   }
 
-  export function reorderLayer(layerId, newVisualIndex) {
+  export function reorderLayer(layerId: string, newVisualIndex: number) {
     const lm = layerManager;
     const hm = historyManager;
     if (!lm || !hm) return;
@@ -486,7 +530,7 @@
     }
   }
 
-  export function renameLayer(layerId, newName) {
+  export function renameLayer(layerId: string, newName: string) {
     const lm = layerManager;
     const hm = historyManager;
     if (!lm || !hm) return;
