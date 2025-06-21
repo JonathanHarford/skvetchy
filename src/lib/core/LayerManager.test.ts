@@ -146,4 +146,55 @@ describe('LayerManager', () => {
       expect(layerManager.findLayerIndexById('')).toBe(-1);
     });
   });
+
+  describe('reorderLayer', () => {
+    it('should reorder layers correctly', () => {
+      // Add some layers to test with
+      const layer1 = layerManager.addLayer('Layer 1', 800, 600);
+      const layer2 = layerManager.addLayer('Layer 2', 800, 600);
+      const layer3 = layerManager.addLayer('Layer 3', 800, 600);
+
+      // Initial order should be: Background(0), Layer1(1), Layer2(2), Layer3(3)
+      let layers = layerManager.getLayers();
+      expect(layers).toHaveLength(4);
+      
+      let sortedLayers = [...layers].sort((a, b) => a.zIndex - b.zIndex);
+      expect(sortedLayers[0].name).toBe('Background');
+      expect(sortedLayers[1].name).toBe('Layer 1');
+      expect(sortedLayers[2].name).toBe('Layer 2');
+      expect(sortedLayers[3].name).toBe('Layer 3');
+
+      // Move Layer 2 to position 0 (should be at the bottom, below Background)
+      const result = layerManager.reorderLayer(layer2.id, 0);
+      expect(result).not.toBeNull();
+      expect(result?.oldVisualIndex).toBe(2);
+      expect(result?.newVisualIndex).toBe(0);
+
+      // Check the new order: Layer2(0), Background(1), Layer1(2), Layer3(3)
+      layers = layerManager.getLayers();
+      sortedLayers = [...layers].sort((a, b) => a.zIndex - b.zIndex);
+      expect(sortedLayers[0].name).toBe('Layer 2');
+      expect(sortedLayers[1].name).toBe('Background');
+      expect(sortedLayers[2].name).toBe('Layer 1');
+      expect(sortedLayers[3].name).toBe('Layer 3');
+    });
+
+    it('should return null for non-existent layer ID', () => {
+      const result = layerManager.reorderLayer('non-existent-id', 0);
+      expect(result).toBeNull();
+    });
+
+    it('should handle moving layer to the same position', () => {
+      const layer1 = layerManager.addLayer('Layer 1', 800, 600);
+      
+      // Move layer to its current position
+      const result = layerManager.reorderLayer(layer1.id, 1);
+      expect(result).not.toBeNull();
+      
+      // Layer should remain in the same position
+      const layers = layerManager.getLayers();
+      const sortedLayers = [...layers].sort((a, b) => a.zIndex - b.zIndex);
+      expect(sortedLayers[1].name).toBe('Layer 1');
+    });
+  });
 }); 

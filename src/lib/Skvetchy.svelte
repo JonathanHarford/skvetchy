@@ -322,7 +322,7 @@
           onselectLayer={(layerId) => canvasComponent?.setActiveLayer(layerId)}
           ondeleteLayer={(layerId) => canvasComponent?.deleteLayer(layerId)}
           ontoggleVisibility={(layerId) => canvasComponent?.toggleLayerVisibility(layerId)}
-          onreorderLayer={(data) => canvasComponent?.reorderLayer(data.layerId, data.newIndex)}
+          onreorderLayer={(data) => canvasComponent?.reorderLayer(data)}
           onrenameLayer={(data) => canvasComponent?.renameLayer(data.layerId, data.newName)}
           onaddLayer={handleAddLayer}
         />

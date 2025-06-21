@@ -56,11 +56,10 @@
     event.preventDefault();
     const sourceLayerId = event.dataTransfer!.getData('text/plain');
     if (sourceLayerId && sourceLayerId !== targetLayerId) {
-      const reversedLayers = [...layers].reverse();
-      const targetIndex = reversedLayers.findIndex(l => l.id === targetLayerId);
+      // Find the target layer's index in the original layers array (not reversed)
+      const targetIndex = layers.findIndex((l: ILayer) => l.id === targetLayerId);
       if (targetIndex !== -1) {
-        const originalTargetIndex = layers.length - 1 - targetIndex;
-        onreorderLayer?.({ layerId: sourceLayerId, newIndex: originalTargetIndex });
+        onreorderLayer?.({ layerId: sourceLayerId, newIndex: targetIndex });
       }
     }
     draggedItemId = null;
@@ -122,7 +121,7 @@
         class:drop-target={layer.id === dropTargetId && layer.id !== draggedItemId}
         class:editing={layer.id === editingLayerId}
         draggable={editingLayerId !== layer.id}
-        ondragstart={(e) => editingLayerId !== layer.id && handleDragStart(e, layer.id)}
+        ondragstart={(e) => { if (editingLayerId !== layer.id) handleDragStart(e, layer.id); }}
         ondragover={(e) => handleDragOver(e, layer.id)}
         ondragleave={handleDragLeave}
         ondrop={(e) => handleDrop(e, layer.id)}

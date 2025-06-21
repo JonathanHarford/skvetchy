@@ -463,23 +463,22 @@
     }
   }
 
-  export function reorderLayer(layerId: string, newVisualIndex: number) {
+  export function reorderLayer(data: { layerId: string; newIndex: number }) {
     const lm = layerManager;
     const hm = historyManager;
     if (!lm || !hm) return;
-    const layer = lm.findLayerById(layerId);
+    const layer = lm.findLayerById(data.layerId);
     if (!layer) return;
 
-    const result = lm.reorderLayer(layerId, newVisualIndex);
+    const result = lm.reorderLayer(data.layerId, data.newIndex);
     if (result) {
         hm.addHistory({
             type: 'reorderLayer',
-            layerId: layerId,
-            meta: { oldVisualIndex: result.oldVisualIndex, newVisualIndex: result.newVisualIndex, targetLayerId: layerId }
+            layerId: data.layerId,
+            meta: { oldVisualIndex: result.oldVisualIndex, newVisualIndex: result.newVisualIndex, targetLayerId: data.layerId }
         });
-        // History action in CanvasHistoryActions will call updateExternalState(false)
-        // We only need to update history state
-        updateExternalStatePartial(false, false, true);
+        // Update layers state so UI reflects the reordering, plus history state
+        updateExternalStatePartial(true, false, true);
         requestRedraw();
     }
   }
