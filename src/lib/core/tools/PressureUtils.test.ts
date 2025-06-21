@@ -5,38 +5,86 @@ import {
   processPressureInitial, 
   processPressureWithSmoothing, 
   hasSignificantPressureChange,
+  calculatePressureLineWidth,
   type PressureState 
 } from './PressureUtils';
 
 describe('PressureUtils', () => {
   describe('normalizePressure', () => {
-    it('should clamp pressure values to reasonable bounds', () => {
-      expect(normalizePressure(0.05)).toBe(0.1); // Below minimum
-      expect(normalizePressure(1.5)).toBe(1.0);  // Above maximum
-      expect(normalizePressure(-0.2)).toBe(0.1); // Negative
-      expect(normalizePressure(0.5)).toBe(0.5);  // Normal value
-      expect(normalizePressure(undefined)).toBe(1.0); // Default
+    it('should clamp pressure to 0.1-1.0 range', () => {
+      expect(normalizePressure(0.05)).toBe(0.1);
+      expect(normalizePressure(1.5)).toBe(1.0);
+      expect(normalizePressure(0.5)).toBe(0.5);
+      expect(normalizePressure(-0.2)).toBe(0.1);
+    });
+
+    it('should default to 1.0 for undefined pressure', () => {
+      expect(normalizePressure(undefined)).toBe(1.0);
     });
   });
 
   describe('smoothPressure', () => {
     it('should limit large pressure changes', () => {
-      expect(smoothPressure(1.0, 0.2, 0.3)).toBe(0.5); // Limited increase
-      expect(smoothPressure(0.1, 0.8, 0.3)).toBe(0.5); // Limited decrease
-      expect(smoothPressure(0.7, 0.5, 0.3)).toBe(0.7); // Small change, no limit
+      expect(smoothPressure(1.0, 0.2)).toBe(0.5); // 0.2 + 0.3 max change
+      expect(smoothPressure(0.1, 0.8)).toBe(0.5); // 0.8 - 0.3 max change
     });
 
-    it('should use default max change of 0.3', () => {
-      expect(smoothPressure(1.0, 0.2)).toBe(0.5); // 0.2 + 0.3
-      expect(smoothPressure(0.1, 0.8)).toBe(0.5); // 0.8 - 0.3
+    it('should allow small pressure changes', () => {
+      expect(smoothPressure(0.6, 0.5)).toBe(0.6);
+      expect(smoothPressure(0.4, 0.5)).toBe(0.4);
+    });
+
+    it('should use custom max change parameter', () => {
+      expect(smoothPressure(1.0, 0.2, 0.1)).toBeCloseTo(0.3, 5); // 0.2 + 0.1 max change
+    });
+  });
+
+  describe('calculatePressureLineWidth', () => {
+    it('should always return 1px for minimum pressure regardless of brush size', () => {
+      expect(calculatePressureLineWidth(0.1, 5)).toBe(1);
+      expect(calculatePressureLineWidth(0.1, 20)).toBe(1);
+      expect(calculatePressureLineWidth(0.1, 100)).toBe(1);
+    });
+
+    it('should return full brush size for maximum pressure', () => {
+      expect(calculatePressureLineWidth(1.0, 5)).toBe(5);
+      expect(calculatePressureLineWidth(1.0, 20)).toBe(20);
+      expect(calculatePressureLineWidth(1.0, 100)).toBe(100);
+    });
+
+    it('should interpolate correctly between minimum and maximum', () => {
+      // For a 10px brush:
+      // - 0.1 pressure = 1px
+      // - 0.55 pressure (middle) = 5.5px
+      // - 1.0 pressure = 10px
+      expect(calculatePressureLineWidth(0.55, 10)).toBeCloseTo(5.5, 1);
+      
+      // For a 20px brush:
+      // - 0.1 pressure = 1px
+      // - 0.55 pressure (middle) = 10.5px
+      // - 1.0 pressure = 20px
+      expect(calculatePressureLineWidth(0.55, 20)).toBeCloseTo(10.5, 1);
+    });
+
+    it('should handle edge case of 1px brush size', () => {
+      expect(calculatePressureLineWidth(0.1, 1)).toBe(1);
+      expect(calculatePressureLineWidth(0.5, 1)).toBe(1);
+      expect(calculatePressureLineWidth(1.0, 1)).toBe(1);
+    });
+
+    it('should handle small brush sizes correctly', () => {
+      // For a 2px brush: 0.1 -> 1px, 1.0 -> 2px
+      expect(calculatePressureLineWidth(0.1, 2)).toBe(1);
+      expect(calculatePressureLineWidth(1.0, 2)).toBe(2);
+      expect(calculatePressureLineWidth(0.55, 2)).toBeCloseTo(1.5, 1);
     });
   });
 
   describe('processPressureInitial', () => {
-    it('should only normalize pressure without smoothing', () => {
+    it('should normalize pressure', () => {
       expect(processPressureInitial(0.05)).toBe(0.1);
       expect(processPressureInitial(1.5)).toBe(1.0);
-      expect(processPressureInitial(0.7)).toBe(0.7);
+      expect(processPressureInitial(0.5)).toBe(0.5);
       expect(processPressureInitial(undefined)).toBe(1.0);
     });
   });

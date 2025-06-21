@@ -1,6 +1,6 @@
 import type { ILayer } from '../LayerManager';
 import type { ITool } from './ITool';
-import { processPressureInitial, processPressureWithSmoothing, hasSignificantPressureChange, type PressureState } from './PressureUtils';
+import { processPressureInitial, processPressureWithSmoothing, hasSignificantPressureChange, calculatePressureLineWidth, type PressureState } from './PressureUtils';
 import { setupStrokeContextWithPosition, createNewStrokeSegment, setCompositeOperation, resetCompositeOperation } from './CanvasContextUtils';
 
 export class EraserTool implements ITool {
@@ -29,7 +29,7 @@ export class EraserTool implements ITool {
     this.lastX = event.offsetX;
     this.lastY = event.offsetY;
     setupStrokeContextWithPosition(activeLayer.context, {
-      lineWidth: penSize * currentPressure
+      lineWidth: calculatePressureLineWidth(currentPressure, penSize)
     }, this.lastX, this.lastY);
   }
 
@@ -42,7 +42,7 @@ export class EraserTool implements ITool {
     // If pressure has changed significantly, start a new path segment
     if (hasSignificantPressureChange(currentPressure, this.pressureState.lastPressure)) {
       createNewStrokeSegment(activeLayer.context, {
-        lineWidth: penSize * currentPressure
+        lineWidth: calculatePressureLineWidth(currentPressure, penSize)
       }, this.lastX, this.lastY, event.offsetX, event.offsetY);
       
       this.pressureState.lastPressure = currentPressure;

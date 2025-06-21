@@ -34,6 +34,27 @@ export function smoothPressure(currentPressure: number, lastPressure: number, ma
 }
 
 /**
+ * Calculates the actual line width based on pressure and brush size
+ * The lightest pressure always results in 1px, regardless of brush size
+ * @param pressure Normalized pressure value (0.1 to 1.0)
+ * @param brushSize The maximum brush size
+ * @returns Line width from 1px to brushSize
+ */
+export function calculatePressureLineWidth(pressure: number, brushSize: number): number {
+  // Map pressure from [0.1, 1.0] to [1, brushSize]
+  // Formula: 1 + (pressure - 0.1) * (brushSize - 1) / 0.9
+  const minPressure = 0.1;
+  const maxPressure = 1.0;
+  const minLineWidth = 1;
+  
+  // Ensure we don't go below 1px even if brush size is 1
+  if (brushSize <= 1) return 1;
+  
+  const normalizedPressure = (pressure - minPressure) / (maxPressure - minPressure);
+  return minLineWidth + normalizedPressure * (brushSize - minLineWidth);
+}
+
+/**
  * Processes raw pressure input with normalization only (for initial pointer down)
  * @param pressure Raw pressure value
  * @returns Normalized pressure value ready for use

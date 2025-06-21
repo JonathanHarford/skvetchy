@@ -1,6 +1,6 @@
 import type { ILayer } from '../LayerManager';
 import type { ITool } from './ITool';
-import { processPressureInitial, processPressureWithSmoothing, hasSignificantPressureChange, type PressureState } from './PressureUtils';
+import { processPressureInitial, processPressureWithSmoothing, hasSignificantPressureChange, calculatePressureLineWidth, type PressureState } from './PressureUtils';
 import { setupStrokeContextWithPosition, createNewStrokeSegment, setCompositeOperation } from './CanvasContextUtils';
 
 export class PenTool implements ITool {
@@ -30,7 +30,7 @@ export class PenTool implements ITool {
     this.lastY = event.offsetY;
     setupStrokeContextWithPosition(activeLayer.context, {
       color,
-      lineWidth: penSize * currentPressure
+      lineWidth: calculatePressureLineWidth(currentPressure, penSize)
     }, this.lastX, this.lastY);
   }
 
@@ -44,7 +44,7 @@ export class PenTool implements ITool {
     if (hasSignificantPressureChange(currentPressure, this.pressureState.lastPressure)) {
       createNewStrokeSegment(activeLayer.context, {
         color,
-        lineWidth: penSize * currentPressure
+        lineWidth: calculatePressureLineWidth(currentPressure, penSize)
       }, this.lastX, this.lastY, event.offsetX, event.offsetY);
       
       this.pressureState.lastPressure = currentPressure;
