@@ -35,12 +35,16 @@ export class CanvasEventHandlers {
     if (activeLayer && event.target === displayCanvasElement) {
       const imageDataBeforeStroke = captureCanvasState(activeLayer.canvas);
       
-      let pressure: number | undefined;
-      if (event.pressure === 0) pressure = undefined;
-      else if (event.pressure === 0.5 && event.pointerType !== 'pen') pressure = undefined;
-      else pressure = event.pressure;
+      let pressureValue: number | undefined;
+      if (event.pressure === 0 && event.pointerType === 'pen') { // Specifically for pen, 0 pressure should be treated as minimal, not default
+        pressureValue = 0;
+      } else if (event.pressure === 0.5 && event.pointerType !== 'pen') { // Non-pen (mouse/touch) with default 0.5 pressure
+        pressureValue = undefined; // Will default to 1.0 in normalizePressure, as intended for mouse/touch
+      } else {
+        pressureValue = event.pressure;
+      }
       
-      currentToolInstance.onPointerDown(event, activeLayer, penColor, penSize, pressure);
+      currentToolInstance.onPointerDown(event, activeLayer, penColor, penSize, pressureValue);
       return imageDataBeforeStroke;
     }
     return undefined;
@@ -52,13 +56,17 @@ export class CanvasEventHandlers {
     if (!currentToolInstance || !layerManager) return;
 
     const activeLayer = layerManager.getActiveLayer();
-    if (activeLayer && event.target === displayCanvasElement && (event.buttons === 1 || event.pointerType === 'touch')) {
-      let pressure: number | undefined;
-      if (event.pressure === 0) pressure = undefined;
-      else if (event.pressure === 0.5 && event.pointerType !== 'pen') pressure = undefined;
-      else pressure = event.pressure;
+    if (activeLayer && event.target === displayCanvasElement && (event.buttons === 1 || event.pointerType === 'touch' || event.pointerType === 'pen')) {
+      let pressureValue: number | undefined;
+      if (event.pressure === 0 && event.pointerType === 'pen') { // Specifically for pen, 0 pressure should be treated as minimal, not default
+        pressureValue = 0;
+      } else if (event.pressure === 0.5 && event.pointerType !== 'pen') { // Non-pen (mouse/touch) with default 0.5 pressure
+        pressureValue = undefined; // Will default to 1.0 in normalizePressure, as intended for mouse/touch
+      } else {
+        pressureValue = event.pressure;
+      }
       
-      currentToolInstance.onPointerMove(event, activeLayer, penColor, penSize, pressure);
+      currentToolInstance.onPointerMove(event, activeLayer, penColor, penSize, pressureValue);
       requestRedraw();
     }
   };
