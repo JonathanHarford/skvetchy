@@ -1,6 +1,6 @@
 # Skvetchy - Svelte Drawing Component
 
-A powerful, customizable drawing/sketching component for Svelte applications built with Konva.js.
+A powerful, customizable drawing/sketching component for Svelte applications built with [Konva.js](https://konvajs.org/) for [Exquisite.Monster](https://exquisite.monster).
 
 [Demo](https://JonathanHarford.github.io/skvetchy)
 
