@@ -122,7 +122,7 @@ export function captureCanvasState(canvas: HTMLCanvasElement): string {
 
 // New optimized function for capturing compressed image data
 export function captureCanvasStateOptimized(canvas: HTMLCanvasElement): { data: Uint8Array; size: { width: number; height: number } } {
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   
   // Simple compression - store only non-transparent pixels with coordinates

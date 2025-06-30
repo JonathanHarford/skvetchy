@@ -1,10 +1,10 @@
 export function captureCanvasImageData(canvas: HTMLCanvasElement): ImageData {
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
 export function restoreCanvasImageData(canvas: HTMLCanvasElement, imageData: ImageData): void {
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   ctx.putImageData(imageData, 0, 0);
 }
 

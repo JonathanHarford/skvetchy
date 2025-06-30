@@ -24,7 +24,7 @@ export function createTempCanvas(width: number, height: number): CanvasWithConte
   canvas.width = width;
   canvas.height = height;
   
-  const context = canvas.getContext('2d');
+  const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) {
     throw new Error('Failed to get 2D context for temporary canvas');
   }

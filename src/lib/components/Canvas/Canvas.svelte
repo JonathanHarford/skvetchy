@@ -186,14 +186,12 @@
     }
   }
 
-
-
   async function initializeCanvas() {
     await tick();
     const currentDisplayCanvasElement = displayCanvasElement;
 
     if (!currentDisplayCanvasElement) return;
-    const ctx = currentDisplayCanvasElement.getContext('2d');
+    const ctx = currentDisplayCanvasElement.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     displayCtx = ctx;
 
