@@ -49,7 +49,7 @@ export class FillBucketTool implements ITool {
     const ctx = layer.context;
     
     return new Promise((resolve) => {
-      const worker = new Worker(new URL('./FloodFillWorker.ts', import.meta.url));
+      const worker = new Worker(new URL('./FloodFillWorker.js', import.meta.url));
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
       worker.postMessage({

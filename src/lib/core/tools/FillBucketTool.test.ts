@@ -23,6 +23,8 @@ const createMockLayer = (): ILayer => ({
   zIndex: 0,
   canvas: createMockCanvas() as any as HTMLCanvasElement,
   context: createMockContext() as any as CanvasRenderingContext2D,
+  isDirty: false,
+  lastModified: Date.now(),
 });
 
 describe('FillBucketTool', () => {

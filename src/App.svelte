@@ -4,16 +4,16 @@
 
   let sketchyComponent: Skvetchy;
 
-  function handleLayersChange(event: CustomEvent<readonly ILayer[]>) {
-    console.log('Layers changed:', event.detail);
+  function handleLayersChange(layers: readonly ILayer[]) {
+    console.log('Layers changed:', layers);
   }
 
-  function handleExport(event: CustomEvent<Blob>) {
-    console.log('Image exported:', event.detail);
+  function handleExport(file: File) {
+    console.log('Image exported:', file);
   }
 
-  function handleToolChange(event: CustomEvent<'pen' | 'eraser' | 'fill'>) {
-    console.log('Tool changed to:', event.detail);
+  function handleToolChange(tool: 'pen' | 'eraser' | 'fill') {
+    console.log('Tool changed to:', tool);
   }
 </script>
 
@@ -28,9 +28,9 @@
     initialTool="pen"
     enableFullscreen={true}
     enableDownload={true}
-    on:layersChange={handleLayersChange}
-    on:export={handleExport}
-    on:toolChange={handleToolChange}
+    onlayerschange={handleLayersChange}
+    onexport={handleExport}
+    ontoolchange={handleToolChange}
   />
 </main>
 

@@ -49,7 +49,9 @@ function createMockLayer(): ILayer {
     isVisible: true,
     zIndex: 0,
     canvas: {} as HTMLCanvasElement,
-    context: createMockContext() as any
+    context: createMockContext() as any,
+    isDirty: false,
+    lastModified: Date.now(),
   };
 }
 
