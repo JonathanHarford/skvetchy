@@ -316,6 +316,7 @@
           activeLayerId={activeLayerId}
           onselectLayer={(layerId) => canvasComponent?.setActiveLayer(layerId)}
           ondeleteLayer={(layerId) => canvasComponent?.deleteLayer(layerId)}
+          onclearLayer={(layerId) => canvasComponent?.clearActiveLayer()}
           ontoggleVisibility={(layerId) => canvasComponent?.toggleLayerVisibility(layerId)}
           onreorderLayer={(data) => canvasComponent?.reorderLayer(data)}
           onrenameLayer={(data) => canvasComponent?.renameLayer(data.layerId, data.newName)}

@@ -15,6 +15,7 @@
     canvasToFile,
     type CanvasSize 
   } from '../../core/CanvasUtils';
+  import { debounce } from '../../utils/debounce';
 
   // Props - use directly without internal copies
   let {
@@ -282,6 +283,28 @@
         await initializeCanvas();
       };
 
+      const debouncedResize = debounce(async (newWidth: number, newHeight: number) => {
+        width = newWidth;
+        height = newHeight;
+        
+        const currentDisplayEl = displayCanvasElement;
+        if (currentDisplayEl) {
+          currentDisplayEl.width = width;
+          currentDisplayEl.height = height;
+          // Remove any temporary transform
+          currentDisplayEl.style.transform = '';
+          currentDisplayEl.style.transformOrigin = '';
+        }
+        
+        const lm = layerManager;
+        if (lm) {
+          lm.resizeLayers(width, height);
+          // Mark all layers as dirty after resize
+          lm.getLayers().forEach(layer => lm.markLayerDirty(layer.id));
+          requestRedraw();
+        }
+      }, 150); // 150ms debounce
+
       const resizeObserver = new ResizeObserver(async entries => {
         for (let entry of entries) {
           const newWidth = entry.contentRect.width;
@@ -289,20 +312,17 @@
           
           // Only update if dimensions actually changed and are valid
           if (newWidth > 0 && newHeight > 0 && (newWidth !== width || newHeight !== height)) {
-            width = newWidth;
-            height = newHeight;
-            
+            // Use CSS transform for immediate visual feedback
             const currentDisplayEl = displayCanvasElement;
             if (currentDisplayEl) {
-              currentDisplayEl.width = width;
-              currentDisplayEl.height = height;
+              const scaleX = newWidth / width;
+              const scaleY = newHeight / height;
+              currentDisplayEl.style.transform = `scale(${scaleX}, ${scaleY})`;
+              currentDisplayEl.style.transformOrigin = 'top left';
             }
             
-            const lm = layerManager;
-            if (lm) {
-              lm.resizeLayers(width, height);
-              requestRedraw();
-            }
+            // Debounced actual resize
+            debouncedResize(newWidth, newHeight);
           }
         }
       });
@@ -322,11 +342,20 @@
     const currentDisplayCtx = displayCtx;
     const lm = layerManager;
     if (!currentDisplayCtx || !lm) return;
+    
+    const dirtyLayers = lm.getDirtyLayers();
+    
+    if (dirtyLayers.length === 0) return; // No redraw needed
+    
+    // Only clear and redraw if we have dirty layers
     currentDisplayCtx.clearRect(0, 0, width, height);
     const visibleLayers = lm.getLayers().filter(l => l.isVisible);
+    
     for (const layer of visibleLayers) {
       currentDisplayCtx.drawImage(layer.canvas, 0, 0);
     }
+    
+    lm.clearDirtyFlags();
   }
 
   function handlePointerDown(event: PointerEvent) {
@@ -425,6 +454,7 @@
         imageDataAfter: afterState.data,
         canvasSize: beforeState.size,
       });
+      lm.markLayerDirty(activeLayer.id);
       updateExternalStatePartial(false, false, true);
       requestRedraw();
     }
@@ -458,18 +488,22 @@
             canvas: backup.canvas,
             context: backup.context,
         };
-        hm.addHistory({
-            type: 'deleteLayer',
-            layerId: id,
-            deletedLayerData: deletedLayerDataClone,
-            deletedLayerIndex: layerIndex
-        });
+        
+        // Try to delete the layer - only proceed if successful
+        const deletionSuccessful = lm.deleteLayer(id);
+        if (deletionSuccessful) {
+            hm.addHistory({
+                type: 'deleteLayer',
+                layerId: id,
+                deletedLayerData: deletedLayerDataClone,
+                deletedLayerIndex: layerIndex
+            });
+            // Mark all remaining layers as dirty to force a complete redraw
+            lm.getLayers().forEach(layer => lm.markLayerDirty(layer.id));
+            updateExternalStatePartial(true, true, true);
+            requestRedraw();
+        }
     }
-    lm.deleteLayer(id);
-    // History action in CanvasHistoryActions will call updateExternalState(false)
-    // We only need to update history state
-    updateExternalStatePartial(false, false, true);
-    requestRedraw();
   }
 
   export function toggleLayerVisibility(id: string) {
@@ -485,9 +519,9 @@
         layerId: id,
         visibilityBefore: visibilityBefore,
       });
-      // History action in CanvasHistoryActions will call updateExternalState(false)
-      // We only need to update history state
-      updateExternalStatePartial(false, false, true);
+      lm.markLayerDirty(id);
+      // Update layers state so UI reflects the visibility change, plus history state
+      updateExternalStatePartial(true, false, true);
       requestRedraw();
     }
   }
@@ -506,6 +540,8 @@
             layerId: data.layerId,
             meta: { oldVisualIndex: result.oldVisualIndex, newVisualIndex: result.newVisualIndex, targetLayerId: data.layerId }
         });
+        // Mark all layers as dirty to force a redraw with new layer order
+        lm.getLayers().forEach(layer => lm.markLayerDirty(layer.id));
         // Update layers state so UI reflects the reordering, plus history state
         updateExternalStatePartial(true, false, true);
         requestRedraw();
@@ -523,9 +559,8 @@
         layerId: layerId,
         meta: { oldName: result.oldName, newName: newName }
       });
-      // History action in CanvasHistoryActions will call updateExternalState(false)
-      // We only need to update history state
-      updateExternalStatePartial(false, false, true);
+      // Update layers state so UI reflects the name change, plus history state
+      updateExternalStatePartial(true, false, true);
     }
   }
 

@@ -59,6 +59,7 @@ export class CanvasEventHandlers {
       else pressure = event.pressure;
       
       currentToolInstance.onPointerMove(event, activeLayer, penColor, penSize, pressure);
+      layerManager.markLayerDirty(activeLayer.id);
       requestRedraw();
     }
   };
@@ -85,6 +86,7 @@ export class CanvasEventHandlers {
           imageDataAfter: imageDataAfterStroke.data,
           canvasSize: imageDataBeforeStroke.size,
         });
+        layerManager.markLayerDirty(activeLayer.id);
         updateExternalStatePartial(false, false, true);
       }
       requestRedraw();

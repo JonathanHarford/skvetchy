@@ -197,4 +197,51 @@ describe('LayerManager', () => {
       expect(sortedLayers[1].name).toBe('Layer 1');
     });
   });
+
+  describe('LayerManager dirty tracking', () => {
+  let layerManager: LayerManager;
+
+  beforeEach(() => {
+    layerManager = new LayerManager(100, 100);
+  });
+
+  it('should mark layer as dirty', () => {
+    const layer = layerManager.getActiveLayer();
+    expect(layer).toBeTruthy();
+    
+    if (layer) {
+      expect(layer.isDirty).toBe(false);
+      layerManager.markLayerDirty(layer.id);
+      expect(layer.isDirty).toBe(true);
+      expect(layer.lastModified).toBeGreaterThan(0);
+    }
+  });
+
+  it('should get dirty layers', () => {
+    const layer1 = layerManager.getActiveLayer();
+    const layer2 = layerManager.addLayer('Test Layer', 100, 100);
+    
+    expect(layerManager.getDirtyLayers()).toHaveLength(0);
+    
+    if (layer1) {
+      layerManager.markLayerDirty(layer1.id);
+      expect(layerManager.getDirtyLayers()).toHaveLength(1);
+      expect(layerManager.getDirtyLayers()[0].id).toBe(layer1.id);
+    }
+  });
+
+  it('should clear dirty flags', () => {
+    const layer = layerManager.getActiveLayer();
+    
+    if (layer) {
+      layerManager.markLayerDirty(layer.id);
+      expect(layer.isDirty).toBe(true);
+      expect(layerManager.getDirtyLayers()).toHaveLength(1);
+      
+      layerManager.clearDirtyFlags();
+      expect(layer.isDirty).toBe(false);
+      expect(layerManager.getDirtyLayers()).toHaveLength(0);
+    }
+  });
+});
 }); 

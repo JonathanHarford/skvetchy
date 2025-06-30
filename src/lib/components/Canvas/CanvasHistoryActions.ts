@@ -38,7 +38,7 @@ export class CanvasHistoryActions {
     switch (action.type) {
       case 'stroke':
       case 'clearLayer':
-        this.handleStrokeOrClearAction(action, isUndo, layerToActOn, requestRedraw);
+        this.handleStrokeOrClearAction(action, isUndo, layerToActOn, requestRedraw, layerManager);
         updateExternalStatePartial(true, false, false);
         break;
       case 'addLayer':
@@ -50,11 +50,13 @@ export class CanvasHistoryActions {
         updateExternalStatePartial(true, true, false);
         break;
       case 'toggleLayerVisibility':
-        this.handleToggleVisibilityAction(action, isUndo, layerToActOn);
+        this.handleToggleVisibilityAction(action, isUndo, layerToActOn, layerManager);
         updateExternalStatePartial(true, false, false);
         break;
       case 'reorderLayer':
         this.handleReorderLayerAction(action, isUndo, layerManager);
+        // Mark all layers as dirty to force redraw with new order
+        layerManager.getLayers().forEach(layer => layerManager.markLayerDirty(layer.id));
         updateExternalStatePartial(true, false, false);
         break;
       case 'renameLayer':
@@ -66,7 +68,7 @@ export class CanvasHistoryActions {
     requestRedraw();
   };
 
-  private handleStrokeOrClearAction(action: IHistoryAction, isUndo: boolean, layerToActOn: any, requestRedraw: () => void) {
+  private handleStrokeOrClearAction(action: IHistoryAction, isUndo: boolean, layerToActOn: any, requestRedraw: () => void, layerManager: LayerManager) {
     if (layerToActOn) {
       const imageDataToRestore = isUndo ? action.imageDataBefore : action.imageDataAfter;
       if (imageDataToRestore && action.canvasSize) {
@@ -76,6 +78,7 @@ export class CanvasHistoryActions {
         // Decompress and restore the image data
         const imageData = decompressImageData(imageDataToRestore, action.canvasSize.width, action.canvasSize.height);
         layerToActOn.context.putImageData(imageData, 0, 0);
+        layerManager.markLayerDirty(layerToActOn.id);
         requestRedraw();
       }
     }
@@ -83,7 +86,9 @@ export class CanvasHistoryActions {
 
   private handleAddLayerAction(action: IHistoryAction, isUndo: boolean, layerManager: LayerManager, width: number, height: number) {
     if (isUndo) {
-      if (action.layerId) layerManager.deleteLayer(action.layerId);
+      if (action.layerId) {
+        layerManager.deleteLayer(action.layerId);
+      }
     } else {
       layerManager.addLayer(undefined, width, height);
     }
@@ -93,15 +98,22 @@ export class CanvasHistoryActions {
     if (isUndo) {
       if (action.deletedLayerData) {
         layerManager.addLayerWithData(action.deletedLayerData, action.deletedLayerIndex);
+        // Mark all layers as dirty to force a complete redraw
+        layerManager.getLayers().forEach(layer => layerManager.markLayerDirty(layer.id));
       }
     } else {
-      if (action.layerId) layerManager.deleteLayer(action.layerId);
+      if (action.layerId) {
+        layerManager.deleteLayer(action.layerId);
+        // Mark all remaining layers as dirty to force a complete redraw
+        layerManager.getLayers().forEach(layer => layerManager.markLayerDirty(layer.id));
+      }
     }
   }
 
-  private handleToggleVisibilityAction(action: IHistoryAction, isUndo: boolean, layerToActOn: any) {
+  private handleToggleVisibilityAction(action: IHistoryAction, isUndo: boolean, layerToActOn: any, layerManager: LayerManager) {
     if (layerToActOn && action.visibilityBefore !== undefined) {
       layerToActOn.isVisible = isUndo ? action.visibilityBefore : !action.visibilityBefore;
+      layerManager.markLayerDirty(layerToActOn.id);
     }
   }
 

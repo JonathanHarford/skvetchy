@@ -8,6 +8,7 @@
     activeLayerId = null,
     onselectLayer,
     ondeleteLayer,
+    onclearLayer,
     ontoggleVisibility,
     onreorderLayer,
     onrenameLayer,
@@ -17,6 +18,7 @@
     activeLayerId?: string | null;
     onselectLayer?: (layerId: string) => void;
     ondeleteLayer?: (layerId: string) => void;
+    onclearLayer?: (layerId: string) => void;
     ontoggleVisibility?: (layerId: string) => void;
     onreorderLayer?: (data: { layerId: string; newIndex: number }) => void;
     onrenameLayer?: (data: { layerId: string; newName: string }) => void;
@@ -131,10 +133,11 @@
         <div
           class="layer-content"
           onclick={() => { if(editingLayerId !== layer.id) onselectLayer?.(layer.id); }}
+          ondblclick={() => { if(editingLayerId !== layer.id) startEditing(layer); }}
           onkeydown={(e) => { if((e.key === 'Enter' || e.key === ' ') && editingLayerId !== layer.id) onselectLayer?.(layer.id); }}
           tabindex="0"
           role="button"
-          title={editingLayerId === layer.id ? 'Press Enter to save, Esc to cancel' : layer.name + ` (Z: ${layer.zIndex})`}
+          title={editingLayerId === layer.id ? 'Press Enter to save, Esc to cancel' : layer.name + ` (Z: ${layer.zIndex}) - Double-click to rename`}
         >
         {#if editingLayerId === layer.id}
           <input
@@ -160,9 +163,16 @@
             <Icon name={layer.isVisible ? 'eye-open' : 'eye-closed'} size={16} />
           </button>
           <button
-            onclick={(e) => { e.stopPropagation(); ondeleteLayer?.(layer.id); }}
-            disabled={layers.length <= 1 || editingLayerId === layer.id}
-            title="Delete Layer"
+            onclick={(e) => { 
+              e.stopPropagation(); 
+              if (layers.length <= 1) {
+                onclearLayer?.(layer.id);
+              } else {
+                ondeleteLayer?.(layer.id);
+              }
+            }}
+            disabled={editingLayerId === layer.id}
+            title={layers.length <= 1 ? "Clear Layer" : "Delete Layer"}
           >
             <Icon name="trash" size={16} />
           </button>

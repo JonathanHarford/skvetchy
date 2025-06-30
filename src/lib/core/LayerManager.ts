@@ -12,12 +12,15 @@ export interface ILayer {
   context: CanvasRenderingContext2D;
   isVisible: boolean;
   zIndex: number;
+  isDirty: boolean;
+  lastModified: number;
 }
 
 export class LayerManager {
   private layers: ILayer[] = [];
   private activeLayerId: string | null = null;
   private nextLayerId = 0;
+  private dirtyLayers = new Set<string>();
 
   constructor(initialWidth: number, initialHeight: number) {
     this.addLayer('Background', initialWidth, initialHeight);
@@ -50,6 +53,8 @@ export class LayerManager {
       context,
       isVisible: true,
       zIndex,
+      isDirty: false,
+      lastModified: Date.now(),
     };
   }
 
@@ -85,13 +90,13 @@ export class LayerManager {
     return layer;
   }
 
-  deleteLayer(id: string): void {
+  deleteLayer(id: string): boolean {
     if (this.layers.length <= 1) {
       console.warn("Cannot delete the last layer.");
-      return;
+      return false;
     }
     const layerIndex = this.findLayerIndexById(id);
-    if (layerIndex === -1) return;
+    if (layerIndex === -1) return false;
 
     this.layers.splice(layerIndex, 1);
 
@@ -102,6 +107,7 @@ export class LayerManager {
         layer.zIndex = index;
     });
     // TODO: Emit event for UI update
+    return true;
   }
 
   setActiveLayer(id: string): void {
@@ -201,5 +207,23 @@ export class LayerManager {
       return { oldName };
     }
     return null;
+  }
+
+  markLayerDirty(layerId: string): void {
+    this.dirtyLayers.add(layerId);
+    const layer = this.findLayerById(layerId);
+    if (layer) {
+      layer.isDirty = true;
+      layer.lastModified = Date.now();
+    }
+  }
+
+  getDirtyLayers(): ILayer[] {
+    return this.layers.filter(l => this.dirtyLayers.has(l.id));
+  }
+
+  clearDirtyFlags(): void {
+    this.dirtyLayers.clear();
+    this.layers.forEach(l => l.isDirty = false);
   }
 }

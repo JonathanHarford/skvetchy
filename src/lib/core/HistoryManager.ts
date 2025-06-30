@@ -31,15 +31,36 @@ export interface IHistoryAction {
 export class HistoryManager {
   private undoStack: IHistoryAction[] = [];
   private redoStack: IHistoryAction[] = [];
-  private readonly maxHistorySize = 100; // Limit history size
+  private readonly maxHistorySize = 50; // Reduced from 100
+  private readonly maxMemoryMB = 100; // Memory limit
+  private currentMemoryUsage = 0;
 
   constructor() {}
 
   addHistory(action: IHistoryAction): void {
-    if (this.undoStack.length >= this.maxHistorySize) {
-      this.undoStack.shift();
+    // Calculate memory usage
+    const actionSize = this.calculateActionSize(action);
+    
+    // Clean old history if memory limit exceeded
+    while (this.currentMemoryUsage + actionSize > this.maxMemoryMB * 1024 * 1024) {
+      const removed = this.undoStack.shift();
+      if (removed) {
+        this.currentMemoryUsage -= this.calculateActionSize(removed);
+      } else {
+        break;
+      }
     }
+    
+    // Also enforce max history size
+    if (this.undoStack.length >= this.maxHistorySize) {
+      const removed = this.undoStack.shift();
+      if (removed) {
+        this.currentMemoryUsage -= this.calculateActionSize(removed);
+      }
+    }
+    
     this.undoStack.push(action);
+    this.currentMemoryUsage += actionSize;
     this.redoStack = [];
     // TODO: Emit event: historyChanged (e.g., to enable/disable undo/redo buttons)
     // console.log('History added:', action, this.undoStack.length);
@@ -80,7 +101,16 @@ export class HistoryManager {
   clear(): void {
     this.undoStack = [];
     this.redoStack = [];
+    this.currentMemoryUsage = 0;
     // TODO: Emit event: historyChanged
+  }
+
+  private calculateActionSize(action: IHistoryAction): number {
+    // Estimate memory usage of action
+    let size = 0;
+    if (action.imageDataBefore) size += action.imageDataBefore.length;
+    if (action.imageDataAfter) size += action.imageDataAfter.length;
+    return size;
   }
 }
 
