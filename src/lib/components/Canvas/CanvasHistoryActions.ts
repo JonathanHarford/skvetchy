@@ -1,6 +1,7 @@
 import type { IHistoryAction } from '../../core/HistoryManager';
 import type { LayerManager } from '../../core/LayerManager';
 import { clearCanvas } from '../../core/CanvasUtils';
+import { decompressImageData } from '../../core/HistoryUtils';
 
 export interface HistoryActionContext {
   layerManager: LayerManager | null;
@@ -68,14 +69,14 @@ export class CanvasHistoryActions {
   private handleStrokeOrClearAction(action: IHistoryAction, isUndo: boolean, layerToActOn: any, requestRedraw: () => void) {
     if (layerToActOn) {
       const imageDataToRestore = isUndo ? action.imageDataBefore : action.imageDataAfter;
-      if (imageDataToRestore) {
-        const img = new Image();
-        img.onload = () => {
-          clearCanvas(layerToActOn.canvas, layerToActOn.context);
-          layerToActOn.context.drawImage(img, 0, 0);
-          requestRedraw();
-        };
-        img.src = imageDataToRestore;
+      if (imageDataToRestore && action.canvasSize) {
+        // Clear the canvas first
+        clearCanvas(layerToActOn.canvas, layerToActOn.context);
+        
+        // Decompress and restore the image data
+        const imageData = decompressImageData(imageDataToRestore, action.canvasSize.width, action.canvasSize.height);
+        layerToActOn.context.putImageData(imageData, 0, 0);
+        requestRedraw();
       }
     }
   }

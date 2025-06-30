@@ -5,7 +5,7 @@
   import { EraserTool } from '../../core/tools/EraserTool';
   import { FillBucketTool } from '../../core/tools/FillBucketTool';
   import type { ITool } from '../../core/tools/ITool';
-  import { HistoryManager, type IHistoryAction, captureCanvasState } from '../../core/HistoryManager';
+  import { HistoryManager, type IHistoryAction, captureCanvasState, captureCanvasStateOptimized } from '../../core/HistoryManager';
   import { CanvasHistoryActions, type HistoryActionContext } from './CanvasHistoryActions';
   import { CanvasEventHandlers, type CanvasEventHandlerContext } from './CanvasEventHandlers';
   import { 
@@ -57,37 +57,35 @@
   let eraserTool = $state<EraserTool | null>(null);
   let fillBucketTool = $state<FillBucketTool | null>(null);
 
-  let imageDataBeforeStroke = $state<string | undefined>(undefined);
+  let imageDataBeforeStroke = $state<{ data: Uint8Array; size: { width: number; height: number } } | undefined>(undefined);
 
   // Handler classes
   let canvasHistoryActions = $state<CanvasHistoryActions | null>(null);
   let canvasEventHandlers = $state<CanvasEventHandlers | null>(null);
 
-  // Tool Switching Effect - simplified to use currentToolType prop directly
+  // Consolidated effect for tool switching and handler context updates
   $effect(() => {
-    const lm = layerManager;
-    const pt = penTool;
-    const et = eraserTool;
-    const fbt = fillBucketTool;
-
-    if (pt && et && fbt && lm?.getActiveLayer()?.context) {
-      const activeCtx = lm.getActiveLayer()!.context;
-      let cti = currentToolInstance;
-
-      if (cti?.deactivate && activeCtx) cti.deactivate(activeCtx);
-
-      if (currentToolType === 'pen') {
-        currentToolInstance = pt;
-      } else if (currentToolType === 'eraser') {
-        currentToolInstance = et;
-      } else if (currentToolType === 'fill') {
-        currentToolInstance = fbt;
-      }
-      
-      cti = currentToolInstance;
-      if (cti?.activate && activeCtx) cti.activate(activeCtx);
-      requestRedraw();
-    }
+    const context = {
+      layerManager,
+      historyManager,
+      currentToolInstance,
+      penTool,
+      eraserTool,
+      fillBucketTool,
+      currentToolType,
+      penColor,
+      penSize,
+      displayCanvasElement,
+      imageDataBeforeStroke,
+      width,
+      height,
+      requestRedraw,
+      updateExternalState,
+      updateExternalStatePartial
+    };
+    
+    updateToolAndContext(context);
+    updateHandlerContexts(context);
   });
 
   function updateExternalState(dispatchHistoryChange = true) {
@@ -126,8 +124,37 @@
     requestAnimationFrame(drawLayers);
   }
 
-  // Update handler contexts when dependencies change
-  $effect(() => {
+  function updateToolAndContext(context: any) {
+    const { layerManager, penTool, eraserTool, fillBucketTool, currentToolType } = context;
+    
+    if (penTool && eraserTool && fillBucketTool && layerManager?.getActiveLayer()?.context) {
+      const activeCtx = layerManager.getActiveLayer()!.context;
+      let cti = currentToolInstance;
+
+      if (cti?.deactivate && activeCtx) cti.deactivate(activeCtx);
+
+      if (currentToolType === 'pen') {
+        currentToolInstance = penTool;
+      } else if (currentToolType === 'eraser') {
+        currentToolInstance = eraserTool;
+      } else if (currentToolType === 'fill') {
+        currentToolInstance = fillBucketTool;
+      }
+      
+      cti = currentToolInstance;
+      if (cti?.activate && activeCtx) cti.activate(activeCtx);
+      context.requestRedraw();
+    }
+  }
+
+  function updateHandlerContexts(context: any) {
+    const {
+      layerManager, historyManager, currentToolInstance, penColor, penSize,
+      displayCanvasElement, imageDataBeforeStroke, width, height,
+      requestRedraw, updateExternalState, updateExternalStatePartial
+    } = context;
+
+    // Update history actions context
     if (canvasHistoryActions) {
       const historyContext: HistoryActionContext = {
         layerManager,
@@ -139,9 +166,8 @@
       };
       canvasHistoryActions.updateContext(historyContext);
     }
-  });
 
-  $effect(() => {
+    // Update event handlers context
     if (canvasEventHandlers) {
       const eventContext: CanvasEventHandlerContext = {
         currentToolInstance,
@@ -157,7 +183,9 @@
       };
       canvasEventHandlers.updateContext(eventContext);
     }
-  });
+  }
+
+
 
   async function initializeCanvas() {
     await tick();
@@ -387,14 +415,15 @@
     if (!lm || !hm) return;
     const activeLayer = lm.getActiveLayer();
     if (activeLayer) {
-      const beforeState = captureCanvasState(activeLayer.canvas);
+      const beforeState = captureCanvasStateOptimized(activeLayer.canvas);
       clearCanvas(activeLayer.canvas, activeLayer.context);
-      const afterState = captureCanvasState(activeLayer.canvas); // Should be empty
+      const afterState = captureCanvasStateOptimized(activeLayer.canvas); // Should be empty
       hm.addHistory({
         type: 'clearLayer',
         layerId: activeLayer.id,
-        imageDataBefore: beforeState,
-        imageDataAfter: afterState,
+        imageDataBefore: beforeState.data,
+        imageDataAfter: afterState.data,
+        canvasSize: beforeState.size,
       });
       updateExternalStatePartial(false, false, true);
       requestRedraw();

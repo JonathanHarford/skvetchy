@@ -13,8 +13,9 @@ export type ActionType =
 export interface IHistoryAction {
   type: ActionType;
   layerId: string;
-  imageDataBefore?: string;
-  imageDataAfter?: string;
+  imageDataBefore?: Uint8Array; // Changed from string
+  imageDataAfter?: Uint8Array;  // Changed from string
+  canvasSize?: { width: number; height: number }; // Add canvas dimensions
   deletedLayerData?: ILayer;
   deletedLayerIndex?: number;
   visibilityBefore?: boolean;
@@ -87,4 +88,28 @@ export class HistoryManager {
 // to capture canvas state. This is a simplified version.
 export function captureCanvasState(canvas: HTMLCanvasElement): string {
   return canvas.toDataURL(); // For pixel-based history.
+}
+
+// New optimized function for capturing compressed image data
+export function captureCanvasStateOptimized(canvas: HTMLCanvasElement): { data: Uint8Array; size: { width: number; height: number } } {
+  const ctx = canvas.getContext('2d')!;
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  
+  // Simple compression - store only non-transparent pixels with coordinates
+  const compressed: number[] = [];
+  const data = imageData.data;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] > 0) { // Non-transparent pixel
+      const pixelIndex = i / 4;
+      const x = pixelIndex % canvas.width;
+      const y = Math.floor(pixelIndex / canvas.width);
+      compressed.push(x, y, data[i], data[i + 1], data[i + 2], data[i + 3]);
+    }
+  }
+  
+  return {
+    data: new Uint8Array(compressed),
+    size: { width: canvas.width, height: canvas.height }
+  };
 }

@@ -1,6 +1,6 @@
 import type { ITool } from '../../core/tools/ITool';
 import type { ILayer } from '../../core/LayerManager';
-import { captureCanvasState } from '../../core/HistoryManager';
+import { captureCanvasState, captureCanvasStateOptimized } from '../../core/HistoryManager';
 
 export interface CanvasEventHandlerContext {
   currentToolInstance: ITool | null;
@@ -9,7 +9,7 @@ export interface CanvasEventHandlerContext {
   penColor: string;
   penSize: number;
   displayCanvasElement: HTMLCanvasElement | null;
-  imageDataBeforeStroke: string | undefined;
+  imageDataBeforeStroke: { data: Uint8Array; size: { width: number; height: number } } | undefined;
   requestRedraw: () => void;
   updateExternalState: () => void;
   updateExternalStatePartial: (updateLayers?: boolean, updateActiveId?: boolean, updateHistory?: boolean) => void;
@@ -26,14 +26,14 @@ export class CanvasEventHandlers {
     this.context = context;
   }
 
-  handlePointerDown = (event: PointerEvent): string | undefined => {
+  handlePointerDown = (event: PointerEvent): { data: Uint8Array; size: { width: number; height: number } } | undefined => {
     const { currentToolInstance, layerManager, penColor, penSize, displayCanvasElement } = this.context;
     
     if (!currentToolInstance || !layerManager) return;
 
     const activeLayer = layerManager.getActiveLayer();
     if (activeLayer && event.target === displayCanvasElement) {
-      const imageDataBeforeStroke = captureCanvasState(activeLayer.canvas);
+      const imageDataBeforeStroke = captureCanvasStateOptimized(activeLayer.canvas);
       
       let pressure: number | undefined;
       if (event.pressure === 0) pressure = undefined;
@@ -63,7 +63,7 @@ export class CanvasEventHandlers {
     }
   };
 
-  handlePointerUp = (event: PointerEvent, imageDataBeforeStroke?: string): void => {
+  handlePointerUp = (event: PointerEvent, imageDataBeforeStroke?: { data: Uint8Array; size: { width: number; height: number } }): void => {
     const { currentToolInstance, layerManager, historyManager, displayCanvasElement, updateExternalStatePartial, requestRedraw } = this.context;
     
     if (!currentToolInstance || !layerManager || !historyManager) return;
@@ -72,18 +72,30 @@ export class CanvasEventHandlers {
 
     if (activeLayer && event.target === displayCanvasElement && imageDataBeforeStroke) {
       currentToolInstance.onPointerUp(event, activeLayer);
-      const imageDataAfterStroke = captureCanvasState(activeLayer.canvas);
+      const imageDataAfterStroke = captureCanvasStateOptimized(activeLayer.canvas);
       
-      if (imageDataBeforeStroke !== imageDataAfterStroke) {
+      // Compare compressed data arrays to detect changes
+      const hasChanged = !this.areImageDataEqual(imageDataBeforeStroke.data, imageDataAfterStroke.data);
+      
+      if (hasChanged) {
         historyManager.addHistory({
           type: 'stroke',
           layerId: activeLayer.id,
-          imageDataBefore: imageDataBeforeStroke,
-          imageDataAfter: imageDataAfterStroke,
+          imageDataBefore: imageDataBeforeStroke.data,
+          imageDataAfter: imageDataAfterStroke.data,
+          canvasSize: imageDataBeforeStroke.size,
         });
         updateExternalStatePartial(false, false, true);
       }
       requestRedraw();
     }
   };
+
+  private areImageDataEqual(data1: Uint8Array, data2: Uint8Array): boolean {
+    if (data1.length !== data2.length) return false;
+    for (let i = 0; i < data1.length; i++) {
+      if (data1[i] !== data2[i]) return false;
+    }
+    return true;
+  }
 } 

@@ -30,7 +30,44 @@ export class FillBucketTool implements ITool {
     this.filling = false;
   }
 
-  private floodFill(layer: ILayer, startX: number, startY: number, fillColor: string): void {
+  private async floodFill(layer: ILayer, startX: number, startY: number, fillColor: string): Promise<void> {
+    const canvas = layer.canvas;
+    const ctx = layer.context;
+    
+    // For small areas, use synchronous fill
+    if (canvas.width * canvas.height < 100000) {
+      this.floodFillScanline(layer, startX, startY, fillColor);
+      return;
+    }
+    
+    // For large areas, use Web Worker
+    return this.floodFillOptimized(layer, startX, startY, fillColor);
+  }
+
+  private floodFillOptimized(layer: ILayer, startX: number, startY: number, fillColor: string): Promise<void> {
+    const canvas = layer.canvas;
+    const ctx = layer.context;
+    
+    return new Promise((resolve) => {
+      const worker = new Worker(new URL('./FloodFillWorker.ts', import.meta.url));
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      worker.postMessage({
+        imageData: imageData,
+        startX, startY, fillColor,
+        width: canvas.width,
+        height: canvas.height
+      });
+      
+      worker.onmessage = (e) => {
+        ctx.putImageData(e.data.imageData, 0, 0);
+        worker.terminate();
+        resolve();
+      };
+    });
+  }
+
+  private floodFillScanline(layer: ILayer, startX: number, startY: number, fillColor: string): void {
     const canvas = layer.canvas;
     const ctx = layer.context;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -52,20 +89,14 @@ export class FillBucketTool implements ITool {
       return;
     }
     
-    // Stack-based flood fill to avoid recursion stack overflow
+    // Scanline flood fill algorithm - more efficient than stack-based
     const stack: Array<[number, number]> = [[Math.floor(startX), Math.floor(startY)]];
-    const visited = new Set<string>();
     
     while (stack.length > 0) {
       const [x, y] = stack.pop()!;
       
       // Check bounds
       if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
-      
-      // Check if already visited
-      const key = `${x},${y}`;
-      if (visited.has(key)) continue;
-      visited.add(key);
       
       const index = (y * canvas.width + x) * 4;
       
@@ -75,17 +106,61 @@ export class FillBucketTool implements ITool {
         continue;
       }
       
-      // Fill this pixel
-      data[index] = fillRGBA.r;
-      data[index + 1] = fillRGBA.g;
-      data[index + 2] = fillRGBA.b;
-      data[index + 3] = fillRGBA.a;
+      // Find the extent of the scanline to the left and right
+      let leftX = x;
+      let rightX = x;
       
-      // Add neighboring pixels to stack
-      stack.push([x + 1, y]);
-      stack.push([x - 1, y]);
-      stack.push([x, y + 1]);
-      stack.push([x, y - 1]);
+      // Extend left
+      while (leftX > 0) {
+        const leftIndex = (y * canvas.width + (leftX - 1)) * 4;
+        if (data[leftIndex] === targetR && data[leftIndex + 1] === targetG && 
+            data[leftIndex + 2] === targetB && data[leftIndex + 3] === targetA) {
+          leftX--;
+        } else {
+          break;
+        }
+      }
+      
+      // Extend right
+      while (rightX < canvas.width - 1) {
+        const rightIndex = (y * canvas.width + (rightX + 1)) * 4;
+        if (data[rightIndex] === targetR && data[rightIndex + 1] === targetG && 
+            data[rightIndex + 2] === targetB && data[rightIndex + 3] === targetA) {
+          rightX++;
+        } else {
+          break;
+        }
+      }
+      
+      // Fill the scanline
+      for (let fillX = leftX; fillX <= rightX; fillX++) {
+        const fillIndex = (y * canvas.width + fillX) * 4;
+        data[fillIndex] = fillRGBA.r;
+        data[fillIndex + 1] = fillRGBA.g;
+        data[fillIndex + 2] = fillRGBA.b;
+        data[fillIndex + 3] = fillRGBA.a;
+      }
+      
+      // Check pixels above and below the scanline
+      for (let checkX = leftX; checkX <= rightX; checkX++) {
+        // Check above
+        if (y > 0) {
+          const aboveIndex = ((y - 1) * canvas.width + checkX) * 4;
+          if (data[aboveIndex] === targetR && data[aboveIndex + 1] === targetG && 
+              data[aboveIndex + 2] === targetB && data[aboveIndex + 3] === targetA) {
+            stack.push([checkX, y - 1]);
+          }
+        }
+        
+        // Check below
+        if (y < canvas.height - 1) {
+          const belowIndex = ((y + 1) * canvas.width + checkX) * 4;
+          if (data[belowIndex] === targetR && data[belowIndex + 1] === targetG && 
+              data[belowIndex + 2] === targetB && data[belowIndex + 3] === targetA) {
+            stack.push([checkX, y + 1]);
+          }
+        }
+      }
     }
     
     // Put the modified image data back
