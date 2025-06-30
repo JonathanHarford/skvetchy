@@ -217,14 +217,9 @@
   });
 
   $effect(() => {
-    // Sync initialPenSize prop changes to penBrushSize state (assuming pen is the default context for initialPenSize)
-     if (currentTool === 'pen') {
-      penBrushSize = initialPenSize;
-    }
-    // If you want initialPenSize to also set eraserSize when eraser is the initial tool, add:
-    // else if (currentTool === 'eraser') {
-    //   eraserSize = initialPenSize;
-    // }
+    // Sync initialPenSize prop changes to penBrushSize state
+    // Only update when the prop actually changes, not when currentTool changes
+    penBrushSize = initialPenSize;
   });
 
   $effect(() => {
