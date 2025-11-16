@@ -269,6 +269,7 @@
       bind:hex={penColor}
       isDialog={true}
       label=""
+      
       --input-size="40px"
     />
 
@@ -329,7 +330,7 @@
 
 <style>
   .sketchy-drawing {
-    overflow: hidden;
+    overflow: visible;
     position: relative;
     display: flex;
     flex-direction: column;
