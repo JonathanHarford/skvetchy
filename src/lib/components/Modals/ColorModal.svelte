@@ -1,5 +1,6 @@
 <script lang="ts">
   import BaseModal from './BaseModal.svelte';
+  import ColorPicker from 'svelte-awesome-color-picker/dist/components/ColorPicker.svelte';
 
   let { 
     show = false,
@@ -13,22 +14,17 @@
     onclose: () => void;
   }>();
 
-  function handleInput(event: Event) {
-    const newColor = (event.target as HTMLInputElement).value;
-    onsetcolor(newColor);
-  }
+  $effect(() => {
+    onsetcolor(penColor);
+  });
 </script>
 
 <BaseModal {show} title="Pen Color" {onclose}>
   {#snippet children()}
     <div class="color-controls">
-      <input
-        type="color"
-        id="penColor"
-        value={penColor}
-        oninput={handleInput}
+      <ColorPicker
+        bind:hex={penColor}
       />
-      <span>{penColor}</span>
     </div>
   {/snippet}
 </BaseModal>
@@ -40,16 +36,5 @@
     justify-content: center;
     gap: 10px;
     margin: 20px 0;
-  }
-  
-  input[type="color"] {
-    width: 100px;
-    height: 40px;
-    border: 1px solid #ccc;
-    padding: 0;
-  }
-  
-  span {
-    font-family: monospace;
   }
 </style>

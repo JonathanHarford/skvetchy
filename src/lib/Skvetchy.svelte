@@ -199,18 +199,6 @@
     ontoolchange?.(currentTool);
   }
 
-  // Handle color picker click to open color modal (if a separate button for modal is desired)
-  // function handleColorClick() {
-  //   showColorModal = true;
-  // }
-
-  // Handle direct color input change
-  function handleColorInput(event: Event) {
-    const target = event.target as HTMLInputElement;
-    penColor = target.value; // Direct assignment to $state variable
-    oncolorchange?.(penColor);
-  }
-
   $effect(() => {
     // Sync initialPenColor prop changes to penColor state
     penColor = initialPenColor;
@@ -273,14 +261,13 @@
       <Icon name="bucket" size={20} />
     </button>
     
-    <!-- Direct color picker button -->
-    <input 
-      type="color" 
-      bind:value={penColor} 
-      oninput={handleColorInput}
-      title="Color: {penColor}"
+    <button
+      onclick={() => showColorModal = true}
+      title="Change the pen color"
       class="color-picker-button"
-    />
+      style="background-color: {penColor};"
+    >
+    </button>
 
     <button onclick={handleUndo} disabled={!canUndo} title="Undo">
       <span style="display: inline-block; transform: rotate(180deg);">➦</span>
@@ -412,17 +399,14 @@
     font-weight: bold;
   }
 
-  /* .color-picker-button {
-    width: 40px !important;
-    height: 40px !important;
-    border: 1px solid #ccc !important;
-    border-radius: 4px !important;
-    cursor: pointer !important;
-    padding: 0 !important;
-  } */
+  .color-picker-button {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
 
   .color-picker-button:hover {
-    border-color: #bbb !important;
+    border-color: #bbb;
   }
 
 
@@ -445,4 +429,4 @@
     /* Ensure layer panel is visible in fullscreen */
     z-index: 1000;
   }
-</style> 
+</style>
