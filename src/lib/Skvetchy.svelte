@@ -2,7 +2,7 @@
   import Canvas from './components/Canvas/Canvas.svelte';
   import LayerPanel from './components/Layers/LayerPanel.svelte';
   import BrushModal from './components/Modals/BrushModal.svelte';
-  import ColorModal from './components/Modals/ColorModal.svelte';
+  import ColorPicker from 'svelte-awesome-color-picker';
   import BaseModal from './components/Modals/BaseModal.svelte';
   import Icon from './components/Icon.svelte';
   import type { ILayer } from './core/LayerManager';
@@ -53,7 +53,6 @@
   let activeLayerId = $state<string | null>(null);
   let showLayersModal = $state(false);
   let showBrushModal = $state(false);
-  let showColorModal = $state(false);
   let penColor = $state(initialPenColor);
   let currentTool = $state<'pen' | 'eraser' | 'fill'>(initialTool);
   let canUndo = $state(false);
@@ -223,6 +222,11 @@
       };
     }
   });
+
+  $effect(() => {
+    // Notify parent when color changes
+    oncolorchange?.(penColor);
+  });
 </script>
 
 <main 
@@ -261,13 +265,12 @@
       <Icon name="bucket" size={20} />
     </button>
     
-    <button
-      onclick={() => showColorModal = true}
-      title="Change the pen color"
-      class="color-picker-button"
-      style="background-color: {penColor};"
-    >
-    </button>
+    <ColorPicker
+      bind:hex={penColor}
+      isDialog={true}
+      label=""
+      --input-size="40px"
+    />
 
     <button onclick={handleUndo} disabled={!canUndo} title="Undo">
       <span style="display: inline-block; transform: rotate(180deg);">➦</span>
@@ -314,16 +317,6 @@
   {/if}
 
 
-
-  <ColorModal
-    show={showColorModal}
-    penColor={penColor}
-    onsetcolor={(color) => {
-      penColor = color;
-      oncolorchange?.(penColor);
-    }}
-    onclose={() => showColorModal = false}
-  />
 
   <BrushModal
     show={showBrushModal}
@@ -398,18 +391,6 @@
     background-color: #a0a0ff;
     font-weight: bold;
   }
-
-  .color-picker-button {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-  }
-
-  .color-picker-button:hover {
-    border-color: #bbb;
-  }
-
-
 
   /* Specific styling for layer modal if needed, e.g., size */
   .layer-modal-content {
