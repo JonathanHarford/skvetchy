@@ -9,7 +9,7 @@ export interface CanvasEventHandlerContext {
   penColor: string;
   penSize: number;
   displayCanvasElement: HTMLCanvasElement | null;
-  imageDataBeforeStroke: { data: Uint8Array; size: { width: number; height: number } } | undefined;
+  imageDataBeforeStroke: { data: Uint16Array; size: { width: number; height: number } } | undefined;
   requestRedraw: () => void;
   updateExternalState: () => void;
   updateExternalStatePartial: (updateLayers?: boolean, updateActiveId?: boolean, updateHistory?: boolean) => void;
@@ -26,7 +26,7 @@ export class CanvasEventHandlers {
     this.context = context;
   }
 
-  handlePointerDown = (event: PointerEvent): { data: Uint8Array; size: { width: number; height: number } } | undefined => {
+  handlePointerDown = (event: PointerEvent): { data: Uint16Array; size: { width: number; height: number } } | undefined => {
     const { currentToolInstance, layerManager, penColor, penSize, displayCanvasElement } = this.context;
     
     if (!currentToolInstance || !layerManager) return;
@@ -64,7 +64,7 @@ export class CanvasEventHandlers {
     }
   };
 
-  handlePointerUp = (event: PointerEvent, imageDataBeforeStroke?: { data: Uint8Array; size: { width: number; height: number } }): void => {
+  handlePointerUp = (event: PointerEvent, imageDataBeforeStroke?: { data: Uint16Array; size: { width: number; height: number } }): void => {
     const { currentToolInstance, layerManager, historyManager, displayCanvasElement, updateExternalStatePartial, requestRedraw } = this.context;
     
     if (!currentToolInstance || !layerManager || !historyManager) return;
@@ -93,7 +93,7 @@ export class CanvasEventHandlers {
     }
   };
 
-  private areImageDataEqual(data1: Uint8Array, data2: Uint8Array): boolean {
+  private areImageDataEqual(data1: Uint16Array, data2: Uint16Array): boolean {
     if (data1.length !== data2.length) return false;
     for (let i = 0; i < data1.length; i++) {
       if (data1[i] !== data2[i]) return false;

@@ -58,7 +58,7 @@
   let eraserTool = $state<EraserTool | null>(null);
   let fillBucketTool = $state<FillBucketTool | null>(null);
 
-  let imageDataBeforeStroke = $state<{ data: Uint8Array; size: { width: number; height: number } } | undefined>(undefined);
+  let imageDataBeforeStroke = $state<{ data: Uint16Array; size: { width: number; height: number } } | undefined>(undefined);
 
   // Handler classes
   let canvasHistoryActions = $state<CanvasHistoryActions | null>(null);

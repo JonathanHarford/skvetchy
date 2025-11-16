@@ -13,8 +13,8 @@ export type ActionType =
 export interface IHistoryAction {
   type: ActionType;
   layerId: string;
-  imageDataBefore?: Uint8Array; // Changed from string
-  imageDataAfter?: Uint8Array;  // Changed from string
+  imageDataBefore?: Uint16Array; // Changed from Uint8Array to support larger canvas dimensions
+  imageDataAfter?: Uint16Array;  // Changed from Uint8Array to support larger canvas dimensions
   canvasSize?: { width: number; height: number }; // Add canvas dimensions
   deletedLayerData?: ILayer;
   deletedLayerIndex?: number;
@@ -40,7 +40,7 @@ export class HistoryManager {
   addHistory(action: IHistoryAction): void {
     // Calculate memory usage
     const actionSize = this.calculateActionSize(action);
-    
+
     // Clean old history if memory limit exceeded
     while (this.currentMemoryUsage + actionSize > this.maxMemoryMB * 1024 * 1024) {
       const removed = this.undoStack.shift();
@@ -50,7 +50,7 @@ export class HistoryManager {
         break;
       }
     }
-    
+
     // Also enforce max history size
     if (this.undoStack.length >= this.maxHistorySize) {
       const removed = this.undoStack.shift();
@@ -58,7 +58,7 @@ export class HistoryManager {
         this.currentMemoryUsage -= this.calculateActionSize(removed);
       }
     }
-    
+
     this.undoStack.push(action);
     this.currentMemoryUsage += actionSize;
     this.redoStack = [];
@@ -82,7 +82,6 @@ export class HistoryManager {
       applyAction(actionToUndo, true); // True indicates it's an undo operation
       this.redoStack.push(actionToUndo);
       // TODO: Emit event: historyChanged
-      console.log('Undone:', actionToUndo);
     }
   }
 
@@ -121,14 +120,14 @@ export function captureCanvasState(canvas: HTMLCanvasElement): string {
 }
 
 // New optimized function for capturing compressed image data
-export function captureCanvasStateOptimized(canvas: HTMLCanvasElement): { data: Uint8Array; size: { width: number; height: number } } {
+export function captureCanvasStateOptimized(canvas: HTMLCanvasElement): { data: Uint16Array; size: { width: number; height: number } } {
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  
+
   // Simple compression - store only non-transparent pixels with coordinates
   const compressed: number[] = [];
   const data = imageData.data;
-  
+
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] > 0) { // Non-transparent pixel
       const pixelIndex = i / 4;
@@ -137,9 +136,9 @@ export function captureCanvasStateOptimized(canvas: HTMLCanvasElement): { data: 
       compressed.push(x, y, data[i], data[i + 1], data[i + 2], data[i + 3]);
     }
   }
-  
+
   return {
-    data: new Uint8Array(compressed),
+    data: new Uint16Array(compressed),
     size: { width: canvas.width, height: canvas.height }
   };
 }
